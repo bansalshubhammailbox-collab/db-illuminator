@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { HeroSection } from "@/components/HeroSection";
 import { ProcessOverview } from "@/components/ProcessOverview";
+import { CredentialStatus } from "@/components/CredentialStatus";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,14 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <HeroSection />
+      
+      {/* Credential Status Section */}
+      <section className="py-8 bg-background/30">
+        <div className="container mx-auto px-4">
+          <CredentialStatus />
+        </div>
+      </section>
+
       <ProcessOverview activeStep={activeStep} />
       
       {/* Features Section */}
