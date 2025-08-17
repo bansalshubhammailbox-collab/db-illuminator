@@ -3,6 +3,10 @@ import { HeroSection } from "@/components/HeroSection";
 import { ProcessOverview } from "@/components/ProcessOverview";
 import { CredentialStatus } from "@/components/CredentialStatus";
 import { DatabaseSelector } from "@/components/DatabaseSelector";
+import { AnnotationPromptCreator } from "@/components/AnnotationPromptCreator";
+import { AnnotationGenerator } from "@/components/AnnotationGenerator";
+import { SpiderEvaluationRunner } from "@/components/SpiderEvaluationRunner";
+import { ResultsSaver } from "@/components/ResultsSaver";
 import { EvaluationValidator } from "@/components/EvaluationValidator";
 import { EvaluationProvider, useEvaluation } from "@/contexts/EvaluationContext";
 import { Button } from "@/components/ui/button";
@@ -55,6 +59,30 @@ const IndexContent = () => {
             />
           </div>
         </section>
+      ) : state.currentStep === 2 ? (
+        <section className="py-20 bg-background">
+          <div className="container mx-auto px-4 max-w-4xl">
+            <AnnotationPromptCreator />
+          </div>
+        </section>
+      ) : state.currentStep === 3 ? (
+        <section className="py-20 bg-background">
+          <div className="container mx-auto px-4 max-w-4xl">
+            <AnnotationGenerator />
+          </div>
+        </section>
+      ) : state.currentStep === 4 ? (
+        <section className="py-20 bg-background">
+          <div className="container mx-auto px-4 max-w-4xl">
+            <SpiderEvaluationRunner />
+          </div>
+        </section>
+      ) : state.currentStep === 5 ? (
+        <section className="py-20 bg-background">
+          <div className="container mx-auto px-4 max-w-4xl">
+            <ResultsSaver />
+          </div>
+        </section>
       ) : (
         <>
           <ProcessOverview 
@@ -62,6 +90,14 @@ const IndexContent = () => {
             onStartStep={(step) => {
               if (step === 1) {
                 setShowDatabaseSelector(true);
+              } else if (step === 2 && state.selectedDatabase) {
+                setCurrentStep(2);
+              } else if (step === 3 && state.selectedDatabase && state.customPrompt) {
+                setCurrentStep(3);
+              } else if (step === 4 && state.selectedDatabase && Object.keys(state.annotations || {}).length > 0) {
+                setCurrentStep(4);
+              } else if (step === 5 && state.evaluationResults) {
+                setCurrentStep(5);
               }
             }}
           />
