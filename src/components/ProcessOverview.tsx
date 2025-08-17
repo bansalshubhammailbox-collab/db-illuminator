@@ -37,9 +37,10 @@ const processSteps = [
 interface ProcessOverviewProps {
   activeStep?: number;
   completedSteps?: number[];
+  onStartStep?: (step: number) => void;
 }
 
-export function ProcessOverview({ activeStep = 1, completedSteps = [] }: ProcessOverviewProps) {
+export function ProcessOverview({ activeStep = 1, completedSteps = [], onStartStep }: ProcessOverviewProps) {
   return (
     <section className="py-20 bg-background">
       <div className="container mx-auto px-4">
@@ -62,7 +63,7 @@ export function ProcessOverview({ activeStep = 1, completedSteps = [] }: Process
               icon={step.icon}
               isActive={activeStep === step.step}
               isCompleted={completedSteps.includes(step.step)}
-              onStart={() => console.log(`Starting step ${step.step}`)}
+              onStart={() => onStartStep?.(step.step)}
             />
           ))}
         </div>

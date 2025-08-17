@@ -2,6 +2,7 @@ import { useState } from "react";
 import { HeroSection } from "@/components/HeroSection";
 import { ProcessOverview } from "@/components/ProcessOverview";
 import { CredentialStatus } from "@/components/CredentialStatus";
+import { DatabaseSelector } from "@/components/DatabaseSelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,8 @@ import {
 
 const Index = () => {
   const [activeStep, setActiveStep] = useState(1);
+  const [selectedDatabase, setSelectedDatabase] = useState(null);
+  const [showDatabaseSelector, setShowDatabaseSelector] = useState(false);
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -30,7 +33,29 @@ const Index = () => {
         </div>
       </section>
 
-      <ProcessOverview activeStep={activeStep} />
+      {showDatabaseSelector ? (
+        <section className="py-20 bg-background">
+          <div className="container mx-auto px-4">
+            <DatabaseSelector 
+              onSelect={(db) => {
+                setSelectedDatabase(db);
+                setShowDatabaseSelector(false);
+                setActiveStep(2);
+              }} 
+              selectedDatabase={selectedDatabase}
+            />
+          </div>
+        </section>
+      ) : (
+        <ProcessOverview 
+          activeStep={activeStep} 
+          onStartStep={(step) => {
+            if (step === 1) {
+              setShowDatabaseSelector(true);
+            }
+          }}
+        />
+      )}
       
       {/* Features Section */}
       <section className="py-20 bg-background/50">
