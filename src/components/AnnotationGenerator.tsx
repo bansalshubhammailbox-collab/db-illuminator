@@ -6,8 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { Brain, Database, Edit3, ArrowRight, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
-import { generateDatabaseAnnotations } from "@/lib/annotationService";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Brain, Database, Edit3, ArrowRight, CheckCircle, AlertCircle, Loader2, Settings, HelpCircle } from "lucide-react";
+import { generateDatabaseAnnotations, processUserAnswersAndGenerateAnnotations } from "@/lib/annotationService";
+import { InteractiveAnnotationHandler } from "@/components/InteractiveAnnotationHandler";
 
 interface TableAnnotation {
   tableName: string;
@@ -20,13 +24,27 @@ interface TableAnnotation {
   }[];
 }
 
+interface InteractiveAnnotationResult {
+  type: 'interactive';
+  questions: any[];
+  schemaInfo: any;
+  samplingInfo: string;
+}
+
 export function AnnotationGenerator() {
   const { state, setAnnotations, setCurrentStep } = useEvaluation();
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generatedAnnotations, setGeneratedAnnotations] = useState<TableAnnotation[]>([]);
+  const [interactiveResult, setInteractiveResult] = useState<InteractiveAnnotationResult | null>(null);
   const [editingTable, setEditingTable] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  
+  // Advanced options
+  const [processType, setProcessType] = useState<'standard' | 'interactive'>('standard');
+  const [rowLimit, setRowLimit] = useState<number>(5);
+  const [customSampling, setCustomSampling] = useState<string>('');
 
   const handleGenerateAnnotations = async () => {
     if (!state.selectedDatabase || !state.customPrompt) return;
@@ -34,6 +52,8 @@ export function AnnotationGenerator() {
     setIsGenerating(true);
     setProgress(0);
     setError(null);
+    setInteractiveResult(null);
+    setGeneratedAnnotations([]);
     
     try {
       // Simulate progress updates
@@ -41,17 +61,50 @@ export function AnnotationGenerator() {
         setProgress(prev => Math.min(prev + 10, 90));
       }, 500);
 
-      const annotations = await generateDatabaseAnnotations(
+      const result = await generateDatabaseAnnotations(
         state.selectedDatabase,
-        state.customPrompt
+        state.customPrompt,
+        {
+          processType,
+          rowLimit,
+          customSampling: customSampling || undefined
+        }
       );
       
       clearInterval(progressInterval);
       setProgress(100);
-      setGeneratedAnnotations(annotations);
+      
+      // Handle different result types
+      if ('type' in result && result.type === 'interactive') {
+        setInteractiveResult(result);
+      } else {
+        setGeneratedAnnotations(result as TableAnnotation[]);
+      }
       
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate annotations");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleInteractiveAnswersComplete = async (answers: Record<string, any>) => {
+    if (!interactiveResult) return;
+    
+    try {
+      setIsGenerating(true);
+      setError(null);
+      
+      const finalAnnotations = await processUserAnswersAndGenerateAnnotations(
+        interactiveResult,
+        answers
+      );
+      
+      setGeneratedAnnotations(finalAnnotations);
+      setInteractiveResult(null);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to process user answers");
     } finally {
       setIsGenerating(false);
     }
@@ -89,6 +142,7 @@ export function AnnotationGenerator() {
   };
 
   const hasValidAnnotations = generatedAnnotations.length > 0;
+  const isInInteractiveMode = interactiveResult !== null;
 
   return (
     <div className="space-y-6">
@@ -116,14 +170,76 @@ export function AnnotationGenerator() {
           <AlertDescription>
             <strong>Prompt Length:</strong> {state.customPrompt.length} characters<br/>
             <span className="text-sm text-muted-foreground">
-              Ready for annotation generation
+              {processType === 'interactive' ? 'Interactive validation mode' : 'Direct generation mode'}
             </span>
           </AlertDescription>
         </Alert>
       </div>
 
+      {/* Advanced Options */}
+      <Card className="border-dashed">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Advanced Options
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+            >
+              {showAdvancedOptions ? 'Hide' : 'Show'}
+            </Button>
+          </div>
+        </CardHeader>
+        {showAdvancedOptions && (
+          <CardContent className="grid md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Process Type</Label>
+              <Select value={processType} onValueChange={(value: 'standard' | 'interactive') => setProcessType(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="standard">Standard Generation</SelectItem>
+                  <SelectItem value="interactive">Interactive Validation</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Row Limit</Label>
+              <Input
+                type="number"
+                min="5"
+                max="1000"
+                value={rowLimit}
+                onChange={(e) => setRowLimit(parseInt(e.target.value) || 5)}
+                placeholder="Number of sample rows"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Custom Sampling</Label>
+              <Input
+                value={customSampling}
+                onChange={(e) => setCustomSampling(e.target.value)}
+                placeholder="e.g., Recent 1000 rows"
+              />
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Interactive Mode Handler */}
+      {isInInteractiveMode && (
+        <InteractiveAnnotationHandler
+          interactiveResult={interactiveResult}
+          onAnswersComplete={handleInteractiveAnswersComplete}
+        />
+      )}
+
       {/* Generation Status */}
-      {!hasValidAnnotations && !isGenerating && (
+      {!hasValidAnnotations && !isGenerating && !isInInteractiveMode && (
         <div className="text-center py-8">
           <Button 
             size="lg" 
@@ -132,8 +248,13 @@ export function AnnotationGenerator() {
             disabled={!state.selectedDatabase || !state.customPrompt}
           >
             <Brain className="mr-2 h-5 w-5" />
-            Generate Annotations with LLM
+            {processType === 'interactive' ? 'Generate Questions for Validation' : 'Generate Annotations with LLM'}
           </Button>
+          {processType === 'interactive' && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Interactive mode will analyze your data and ask validation questions
+            </p>
+          )}
         </div>
       )}
 

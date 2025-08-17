@@ -12,6 +12,41 @@ interface TableAnnotation {
   }[];
 }
 
+interface InteractiveAnnotationResult {
+  type: 'interactive';
+  questions: TableQuestionSet[];
+  schemaInfo: any;
+  samplingInfo: string;
+}
+
+interface TableQuestionSet {
+  table_name: string;
+  sampling_info: string;
+  table_hypothesis: string;
+  columns: ColumnQuestion[];
+}
+
+interface ColumnQuestion {
+  column_name: string;
+  data_type: string;
+  sample_values: string[];
+  enum_values_found: string[];
+  hypothesis: string;
+  questions_for_user: UserQuestion[];
+}
+
+interface UserQuestion {
+  question_text: string;
+  question_type: 'yes_no' | 'multiple_choice' | 'free_text_definitions';
+  options?: string[];
+}
+
+interface AnnotationOptions {
+  rowLimit?: number;
+  processType?: 'standard' | 'interactive';
+  customSampling?: string;
+}
+
 // Mock database schemas for demo purposes
 const mockSchemas: Record<string, any> = {
   academic: {
@@ -41,27 +76,37 @@ const mockSchemas: Record<string, any> = {
 
 export async function generateDatabaseAnnotations(
   database: Database,
-  customPrompt: string
-): Promise<TableAnnotation[]> {
+  customPrompt: string,
+  options?: AnnotationOptions
+): Promise<TableAnnotation[] | InteractiveAnnotationResult> {
   try {
-    console.log(`Generating annotations for ${database.name} with prompt length: ${customPrompt.length}`);
+    const rowLimit = options?.rowLimit || 5;
+    const processType = options?.processType || 'standard';
+    
+    console.log(`Generating annotations for ${database.name} with ${processType} process, ${rowLimit} row limit`);
     
     // Step 1: Connect to Snowflake and get actual schema
     const schemaInfo = await getActualDatabaseSchema(database);
     
-    // Step 2: Get sample data for context
-    const sampleData = await getSampleDataFromTables(database, schemaInfo.tables);
+    // Step 2: Get sample data with custom row limit
+    const sampleData = await getSampleDataFromTables(database, schemaInfo.tables, rowLimit);
     
-    // Step 3: Check if credentials are available for LLM
+    // Step 3: Determine processing approach
+    if (processType === 'interactive') {
+      // Interactive mode: Generate questions for user validation
+      return await generateInteractiveQuestions(database, customPrompt, schemaInfo, sampleData, options?.customSampling);
+    }
+    
+    // Standard mode: Generate annotations directly
     if (!config.gemini.apiKey || config.gemini.apiKey === 'your_gemini_api_key_here') {
       console.warn('Gemini API key not configured, using enhanced mock annotations with real schema');
       return generateEnhancedAnnotations(database, schemaInfo, sampleData);
     }
     
-    // Step 4: Create comprehensive prompt with real data
-    const enhancedPrompt = createDataAwarePrompt(customPrompt, database, schemaInfo, sampleData);
+    // Create comprehensive prompt with real data
+    const enhancedPrompt = createDataAwarePrompt(customPrompt, database, schemaInfo, sampleData, rowLimit);
     
-    // Step 5: Call Gemini API with real database context
+    // Call Gemini API with real database context
     const response = await fetch(`${config.gemini.baseUrl}/models/${config.gemini.model}:generateContent?key=${config.gemini.apiKey}`, {
       method: 'POST',
       headers: {
@@ -97,6 +142,206 @@ export async function generateDatabaseAnnotations(
       return generateEnhancedAnnotations(database, schemaInfo);
     }
     throw new Error('Failed to generate annotations and retrieve database schema. Please check your credentials.');
+  }
+}
+
+// Generate interactive questions for user validation
+async function generateInteractiveQuestions(
+  database: Database,
+  customPrompt: string,
+  schemaInfo: any,
+  sampleData: any[],
+  customSampling?: string
+): Promise<InteractiveAnnotationResult> {
+  try {
+    console.log('Generating interactive questions for user validation');
+    
+    const samplingInfo = customSampling || `Sample of ${sampleData[0]?.sampleRows?.length || 5} rows from each table`;
+    
+    // Check if credentials are available for LLM
+    if (!config.gemini.apiKey || config.gemini.apiKey === 'your_gemini_api_key_here') {
+      // Generate mock interactive questions
+      return generateMockInteractiveQuestions(database, schemaInfo, samplingInfo);
+    }
+    
+    // Create interactive prompt
+    const interactivePrompt = createInteractivePrompt(customPrompt, database, schemaInfo, sampleData, samplingInfo);
+    
+    // Call Gemini API for question generation
+    const response = await fetch(`${config.gemini.baseUrl}/models/${config.gemini.model}:generateContent?key=${config.gemini.apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: interactivePrompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.2,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 8192,
+        }
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return parseInteractiveQuestionsFromResponse(data, schemaInfo, samplingInfo);
+    
+  } catch (error) {
+    console.error('Error generating interactive questions:', error);
+    // Fallback to mock questions
+    return generateMockInteractiveQuestions(database, schemaInfo, customSampling || 'Default sampling');
+  }
+}
+
+// Create interactive prompt for question generation
+function createInteractivePrompt(
+  customPrompt: string,
+  database: Database,
+  schemaInfo: any,
+  sampleData: any[],
+  samplingInfo: string
+): string {
+  return `${customPrompt}
+
+REAL DATABASE CONTEXT:
+Database: ${database.name} (Spider Benchmark - ${database.difficulty} difficulty)
+Total Tables: ${schemaInfo.tables.length}
+Sampling: ${samplingInfo}
+
+ACTUAL SCHEMA INFORMATION:
+${schemaInfo.tables.map((table: any) => `
+Table: ${table.name}
+CREATE TABLE ${table.name} (
+${table.columns.map((col: any) => `  ${col.name} ${col.type}${col.nullable ? '' : ' NOT NULL'}`).join(',\n')}
+);
+`).join('\n')}
+
+SAMPLE DATA:
+${sampleData.map(sample => `
+${sample.tableName} (${sample.rowCount} total rows):
+${JSON.stringify(sample.sampleRows.slice(0, 3), null, 2)}
+`).join('\n')}
+
+Generate your response as a single JSON object following the exact structure specified in the prompt.`;
+}
+
+// Parse interactive questions from Gemini response
+function parseInteractiveQuestionsFromResponse(response: any, schemaInfo: any, samplingInfo: string): InteractiveAnnotationResult {
+  try {
+    const text = response.candidates[0]?.content?.parts[0]?.text || '';
+    
+    // Try to parse JSON from response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsedQuestion = JSON.parse(jsonMatch[0]);
+      return {
+        type: 'interactive',
+        questions: [parsedQuestion],
+        schemaInfo,
+        samplingInfo
+      };
+    }
+    
+    // Fallback if parsing fails
+    throw new Error('Could not parse JSON from LLM response');
+    
+  } catch (error) {
+    console.error('Failed to parse interactive questions:', error);
+    // Return mock questions as fallback
+    return generateMockInteractiveQuestions({ name: 'unknown' } as Database, schemaInfo, samplingInfo);
+  }
+}
+
+// Generate mock interactive questions
+function generateMockInteractiveQuestions(database: Database, schemaInfo: any, samplingInfo: string): InteractiveAnnotationResult {
+  const questions: TableQuestionSet[] = schemaInfo.tables.map((table: any) => ({
+    table_name: table.name,
+    sampling_info: samplingInfo,
+    table_hypothesis: `The ${table.name} table appears to store ${table.name} information with ${table.columns.length} attributes including identifiers and descriptive fields.`,
+    columns: table.columns.map((col: any) => {
+      const sampleValues = generateSampleValuesForColumn(col);
+      const enumValues = col.type.includes('VARCHAR') ? sampleValues.slice(0, 3) : [];
+      
+      return {
+        column_name: col.name,
+        data_type: col.type,
+        sample_values: sampleValues,
+        enum_values_found: enumValues,
+        hypothesis: `${col.name} appears to be a ${getColumnHypothesis(col.name, col.type)}`,
+        questions_for_user: [{
+          question_text: `Is my understanding of ${col.name} as ${getColumnHypothesis(col.name, col.type)} correct?${enumValues.length > 0 ? ` Please define these values: ${enumValues.join(', ')}` : ''}`,
+          question_type: enumValues.length > 0 ? 'free_text_definitions' : 'yes_no' as const
+        }]
+      };
+    })
+  }));
+  
+  return {
+    type: 'interactive',
+    questions,
+    schemaInfo,
+    samplingInfo
+  };
+}
+
+function generateSampleValuesForColumn(col: any): string[] {
+  if (col.name.includes('id')) return ['1', '2', '3'];
+  if (col.name.includes('name')) return ['John Doe', 'Jane Smith', 'Bob Johnson'];
+  if (col.name.includes('email')) return ['john@example.com', 'jane@example.com', 'bob@example.com'];
+  if (col.name.includes('status')) return ['active', 'inactive', 'pending'];
+  if (col.type.includes('DATE')) return ['2024-01-15', '2024-02-20', '2024-03-10'];
+  return ['Value1', 'Value2', 'Value3'];
+}
+
+function getColumnHypothesis(columnName: string, columnType: string): string {
+  if (columnName.includes('id')) return 'unique identifier field';
+  if (columnName.includes('name')) return 'descriptive name or title field';
+  if (columnName.includes('email')) return 'contact email address';
+  if (columnName.includes('status')) return 'status or state indicator';
+  if (columnName.includes('date')) return 'temporal timestamp field';
+  if (columnType.includes('VARCHAR')) return 'text-based descriptive field';
+  if (columnType.includes('NUMBER')) return 'numeric measurement or count field';
+  return 'data attribute field';
+}
+
+// Process user answers and generate final annotations
+export async function processUserAnswersAndGenerateAnnotations(
+  interactiveResult: InteractiveAnnotationResult,
+  userAnswers: Record<string, any>
+): Promise<TableAnnotation[]> {
+  try {
+    console.log('Processing user answers to generate final annotations');
+    
+    // Create final annotations incorporating user feedback
+    const finalAnnotations: TableAnnotation[] = interactiveResult.questions.map(tableQuestion => {
+      const tableAnswers = userAnswers[tableQuestion.table_name] || {};
+      
+      return {
+        tableName: tableQuestion.table_name,
+        description: `${tableQuestion.table_hypothesis} ${tableAnswers.table_description || ''}`.trim(),
+        columns: tableQuestion.columns.map(col => ({
+          name: col.column_name,
+          type: col.data_type,
+          description: `${col.hypothesis} ${tableAnswers[col.column_name]?.description || ''}`.trim(),
+          businessContext: tableAnswers[col.column_name]?.businessContext || `Part of ${tableQuestion.table_name} entity definition`
+        }))
+      };
+    });
+    
+    return finalAnnotations;
+    
+  } catch (error) {
+    console.error('Error processing user answers:', error);
+    throw new Error('Failed to process user answers and generate final annotations');
   }
 }
 
@@ -150,17 +395,17 @@ async function getActualDatabaseSchema(database: Database) {
 }
 
 // Get sample data from actual tables
-async function getSampleDataFromTables(database: Database, tables: any[]) {
+async function getSampleDataFromTables(database: Database, tables: any[], rowLimit: number = 5) {
   try {
-    console.log(`Fetching sample data from ${tables.length} tables`);
+    console.log(`Fetching sample data from ${tables.length} tables (limit: ${rowLimit})`);
     
     // Simulate sample data queries
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // This would execute: SELECT * FROM {tableName} LIMIT 5 FOR EACH TABLE
+    // This would execute: SELECT * FROM {tableName} LIMIT ${rowLimit} FOR EACH TABLE
     return tables.map(table => ({
       tableName: table.name,
-      sampleRows: generateSampleData(table),
+      sampleRows: generateSampleData(table, rowLimit),
       rowCount: Math.floor(Math.random() * 10000) + 100,
       dataTypes: table.columns.map((col: any) => ({
         column: col.name,
@@ -177,12 +422,13 @@ async function getSampleDataFromTables(database: Database, tables: any[]) {
 }
 
 // Create enhanced prompt with real database context
-function createDataAwarePrompt(customPrompt: string, database: Database, schemaInfo: any, sampleData: any[]) {
+function createDataAwarePrompt(customPrompt: string, database: Database, schemaInfo: any, sampleData: any[], rowLimit: number) {
   return `${customPrompt}
 
 REAL DATABASE CONTEXT:
 Database: ${database.name} (Spider Benchmark - ${database.difficulty} difficulty)
 Total Tables: ${schemaInfo.tables.length}
+Sample Size: ${rowLimit} rows per table
 
 ACTUAL SCHEMA INFORMATION:
 ${schemaInfo.tables.map((table: any) => `
@@ -255,14 +501,15 @@ function generateRealisticSchema(database: Database) {
 }
 
 // Generate sample data that looks realistic
-function generateSampleData(table: any) {
+function generateSampleData(table: any, rowLimit: number = 3) {
   const samples = [];
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < Math.min(rowLimit, 10); i++) {
     const row: any = {};
     table.columns.forEach((col: any) => {
       if (col.name.includes('id')) row[col.name] = i + 1;
       else if (col.name.includes('name')) row[col.name] = `Sample${i + 1}`;
       else if (col.name.includes('email')) row[col.name] = `user${i + 1}@example.com`;
+      else if (col.name.includes('date')) row[col.name] = `2024-0${(i % 9) + 1}-15`;
       else row[col.name] = `Value${i + 1}`;
     });
     samples.push(row);
