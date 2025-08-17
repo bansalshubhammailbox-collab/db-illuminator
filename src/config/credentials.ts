@@ -5,8 +5,8 @@ export const config = {
   // Snowflake connection details (from Spider2 repository)
   snowflake: {
     account: "RSRSBDK-YDB67606", // Fixed account from Spider2
-    user: "your_username", // ✏️ Replace with your Snowflake username
-    password: "your_password", // ✏️ Replace with your Snowflake password
+    user: "BANSALSHUBHAM", // ✏️ Replace with your Snowflake username
+    password: "rY4D9TETvTqu6zW", // ✏️ Replace with your Snowflake password
     warehouse: "COMPUTE_WH",
     database: "SPIDER2", // Default database name from Spider2
     schema: "PUBLIC"
@@ -14,7 +14,7 @@ export const config = {
 
   // Gemini AI API configuration
   gemini: {
-    apiKey: "your_gemini_api_key", // ✏️ Replace with your Gemini API key
+    apiKey: "AIzaSyAVrII_LicWrfPeijbdiah2Pkei-hGLWh0", // ✏️ Replace with your Gemini API key
     model: "gemini-pro", // Default model
     baseUrl: "https://generativelanguage.googleapis.com/v1beta"
   },
