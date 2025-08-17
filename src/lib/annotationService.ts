@@ -22,6 +22,7 @@ interface TableQuestionSet {
   table_name: string;
   sampling_info: string;
   table_hypothesis: string;
+  table_questions: UserQuestion[];
   columns: ColumnQuestion[];
 }
 
@@ -184,6 +185,7 @@ function generateInteractiveQuestions(
     table_name: table.name,
     sampling_info: samplingInfo,
     table_hypothesis: `The ${table.name} table appears to store ${getTablePurpose(table.name)} with ${table.columns.length} attributes. Based on the schema structure, it likely serves as ${getTableRole(table.name)} in the ${database.name} system.`,
+    table_questions: generateTableQuestions(table.name, database.name),
     columns: table.columns.map((col: any) => {
       const sampleValues = generateSampleValuesForColumn(col, table.name);
       const enumValues = getEnumValuesForColumn(col, sampleValues);
@@ -207,10 +209,10 @@ function generateInteractiveQuestions(
   };
 }
 
-// Generate realistic schema for different database types
+// Generate realistic schema for different database types - NOW WITH ALL 7 TABLES
 function generateRealisticSchemaForDatabase(database: Database) {
   const schemas: Record<string, any[]> = {
-    'car_1': [ // Car Dealership
+    'car_1': [ // Car Dealership - ALL 7 TABLES
       {
         name: 'vehicles',
         columns: [
@@ -248,6 +250,50 @@ function generateRealisticSchemaForDatabase(database: Database) {
           { name: 'financing_type', type: 'VARCHAR(20)', nullable: true },
           { name: 'salesperson_id', type: 'NUMBER(10)', nullable: false }
         ]
+      },
+      {
+        name: 'dealers',
+        columns: [
+          { name: 'dealer_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'dealer_name', type: 'VARCHAR(100)', nullable: false },
+          { name: 'location', type: 'VARCHAR(100)', nullable: false },
+          { name: 'phone', type: 'VARCHAR(20)', nullable: true },
+          { name: 'manager_id', type: 'NUMBER(10)', nullable: true }
+        ]
+      },
+      {
+        name: 'salespeople',
+        columns: [
+          { name: 'salesperson_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'first_name', type: 'VARCHAR(50)', nullable: false },
+          { name: 'last_name', type: 'VARCHAR(50)', nullable: false },
+          { name: 'dealer_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'hire_date', type: 'DATE', nullable: false },
+          { name: 'commission_rate', type: 'NUMBER(3,2)', nullable: false }
+        ]
+      },
+      {
+        name: 'service_records',
+        columns: [
+          { name: 'service_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'vehicle_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'service_date', type: 'DATE', nullable: false },
+          { name: 'service_type', type: 'VARCHAR(50)', nullable: false },
+          { name: 'cost', type: 'NUMBER(8,2)', nullable: false },
+          { name: 'technician', type: 'VARCHAR(50)', nullable: true }
+        ]
+      },
+      {
+        name: 'financing',
+        columns: [
+          { name: 'financing_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'sale_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'loan_amount', type: 'NUMBER(10,2)', nullable: false },
+          { name: 'interest_rate', type: 'NUMBER(4,2)', nullable: false },
+          { name: 'term_months', type: 'NUMBER(3)', nullable: false },
+          { name: 'monthly_payment', type: 'NUMBER(8,2)', nullable: false },
+          { name: 'lender', type: 'VARCHAR(50)', nullable: false }
+        ]
       }
     ],
     'academic': [
@@ -269,6 +315,20 @@ function generateRealisticSchemaForDatabase(database: Database) {
   return schemas[database.id] || schemas['academic'];
 }
 
+function generateTableQuestions(tableName: string, databaseName: string): UserQuestion[] {
+  return [
+    {
+      question_text: `What is the primary business purpose of the ${tableName} table in the ${databaseName} system?`,
+      question_type: 'free_text_definitions'
+    },
+    {
+      question_text: `Are there any important business rules or constraints for the ${tableName} table that would affect SQL queries?`,
+      question_type: 'free_text_definitions'
+    }
+  ];
+}
+
+// Generate realistic sample data based on realistic data
 function generateRealisticSampleData(table: any, rowLimit: number = 3) {
   const samples = [];
   for (let i = 0; i < Math.min(rowLimit, 10); i++) {
@@ -342,12 +402,15 @@ function generateSampleValuesForColumn(col: any, tableName: string): string[] {
   if (col.name === 'status') return ['available', 'sold', 'pending'];
   if (col.name === 'color') return ['Red', 'Blue', 'White'];
   if (col.name === 'financing_type') return ['cash', 'loan', 'lease'];
+  if (col.name === 'service_type') return ['oil_change', 'brake_repair', 'inspection'];
+  if (col.name === 'lender') return ['Bank of America', 'Wells Fargo', 'Credit Union'];
   if (col.name.includes('name')) return ['John', 'Jane', 'Bob'];
   if (col.name.includes('email')) return ['john@example.com', 'jane@example.com', 'bob@example.com'];
   if (col.name.includes('phone')) return ['555-123-4567', '555-234-5678', '555-345-6789'];
-  if (col.name.includes('price')) return ['25000.00', '35000.00', '45000.00'];
+  if (col.name.includes('price') || col.name.includes('cost') || col.name.includes('amount')) return ['25000.00', '35000.00', '45000.00'];
   if (col.name.includes('year')) return ['2021', '2022', '2023'];
   if (col.name.includes('date')) return ['2024-01-15', '2024-02-20', '2024-03-10'];
+  if (col.name.includes('rate')) return ['3.50', '4.25', '5.00'];
   return ['Value1', 'Value2', 'Value3'];
 }
 
@@ -363,17 +426,21 @@ function getColumnHypothesis(columnName: string, columnType: string, tableName: 
   if (columnName === 'make') return 'the vehicle manufacturer or brand name';
   if (columnName === 'model') return 'the specific vehicle model designation';
   if (columnName === 'year') return 'the manufacturing year of the vehicle';
-  if (columnName.includes('price')) return 'a monetary value representing cost or valuation';
+  if (columnName.includes('price') || columnName.includes('cost') || columnName.includes('amount')) return 'a monetary value representing cost or valuation';
   if (columnName === 'status') return 'a categorical field indicating current state or condition';
   if (columnName === 'color') return 'a categorical field for vehicle color specification';
+  if (columnName === 'service_type') return 'a categorical field indicating the type of service performed';
+  if (columnName === 'lender') return 'the financial institution providing the loan';
+  if (columnName.includes('rate')) return 'a percentage or rate value for calculations';
   if (columnName.includes('name')) return 'a descriptive text field for person or entity names';
   if (columnName.includes('email')) return 'a contact email address with standard email format';
   if (columnName.includes('phone')) return 'a contact phone number field';
-  if (columnName.includes('address')) return 'a physical or mailing address field';
+  if (columnName.includes('address') || columnName.includes('location')) return 'a physical or mailing address field';
   if (columnName.includes('date')) return 'a temporal field tracking important timestamps';
   if (columnName === 'financing_type') return 'a categorical field indicating payment method or financing option';
   if (columnName === 'mileage') return 'a numeric field tracking vehicle usage/distance';
   if (columnName === 'credit_score') return 'a numeric assessment of creditworthiness';
+  if (columnName.includes('term')) return 'a duration or time period specification';
   if (columnType.includes('VARCHAR')) return 'a text-based descriptive or categorical field';
   if (columnType.includes('NUMBER')) return 'a numeric field for calculations, measurements, or counts';
   if (columnType.includes('DATE')) return 'a date/time field for temporal data tracking';
@@ -388,15 +455,29 @@ function generateQuestionsForColumn(col: any, enumValues: string[], tableName: s
       question_text: `I found these values for ${col.name}: ${enumValues.join(', ')}. Please define what each value means and if there are other possible values I should know about.`,
       question_type: 'free_text_definitions'
     });
-  } else if (col.name.includes('id')) {
+  }
+  
+  if (col.name.includes('id')) {
     questions.push({
       question_text: `Is ${col.name} the primary key for ${tableName}? If not, does it reference another table?`,
       question_type: 'multiple_choice',
       options: ['Primary key', 'Foreign key to another table', 'Both primary and foreign key', 'Neither']
     });
-  } else if (col.name.includes('price') || col.name.includes('amount')) {
+    
+    if (col.name !== `${tableName.slice(0, -1)}_id` && col.name !== 'id') {
+      questions.push({
+        question_text: `What table does ${col.name} reference and what is the relationship?`,
+        question_type: 'free_text_definitions'
+      });
+    }
+  } else if (col.name.includes('price') || col.name.includes('amount') || col.name.includes('cost')) {
     questions.push({
       question_text: `For ${col.name}, what currency is used and are there any business rules (e.g., discounts, taxes, minimum/maximum values)?`,
+      question_type: 'free_text_definitions'
+    });
+    
+    questions.push({
+      question_text: `Are there typical ranges or categories for ${col.name} that would be useful for query optimization?`,
       question_type: 'free_text_definitions'
     });
   } else if (col.name.includes('date') || col.name.includes('time')) {
@@ -405,11 +486,24 @@ function generateQuestionsForColumn(col: any, enumValues: string[], tableName: s
       question_type: 'multiple_choice',
       options: ['System generated timestamp', 'User entered date', 'Calculated/derived date', 'External system date']
     });
+  } else if (col.name.includes('rate') || col.name.includes('score')) {
+    questions.push({
+      question_text: `What is the valid range for ${col.name} and how is it calculated?`,
+      question_type: 'free_text_definitions'
+    });
   } else {
     questions.push({
       question_text: `Is my understanding of ${col.name} as ${getColumnHypothesis(col.name, col.type, tableName)} accurate?`,
       question_type: 'yes_no'
     });
+    
+    // Add a second question for most columns
+    if (!col.name.includes('id')) {
+      questions.push({
+        question_text: `Are there any specific constraints, formats, or business rules for ${col.name} that SQL queries should consider?`,
+        question_type: 'free_text_definitions'
+      });
+    }
   }
   
   return questions;

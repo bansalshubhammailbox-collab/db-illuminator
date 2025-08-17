@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, HelpCircle, ArrowRight, MessageSquare } from "lucide-react";
+import { CheckCircle, HelpCircle, ArrowRight, MessageSquare, Database } from "lucide-react";
 
 interface UserQuestion {
   question_text: string;
@@ -27,6 +28,7 @@ interface TableQuestionSet {
   table_name: string;
   sampling_info: string;
   table_hypothesis: string;
+  table_questions: UserQuestion[];
   columns: ColumnQuestion[];
 }
 
@@ -66,12 +68,15 @@ export function InteractiveAnnotationHandler({
     }));
   };
 
-  const handleTableDescriptionAnswer = (tableName: string, answer: string) => {
+  const handleTableQuestionAnswer = (tableName: string, questionIndex: number, answer: string) => {
     setAnswers(prev => ({
       ...prev,
       [tableName]: {
         ...prev[tableName],
-        table_description: answer
+        table_questions: {
+          ...prev[tableName]?.table_questions,
+          [`question_${questionIndex}`]: answer
+        }
       }
     }));
   };
@@ -92,8 +97,21 @@ export function InteractiveAnnotationHandler({
 
   const getAnsweredQuestionsCount = () => {
     const tableAnswers = answers[currentTable.table_name] || {};
-    const totalQuestions = currentTable.columns.reduce((sum, col) => sum + col.questions_for_user.length, 0) + 1; // +1 for table description
-    const answeredQuestions = Object.keys(tableAnswers).length;
+    
+    // Count table questions
+    const tableQuestionCount = currentTable.table_questions?.length || 0;
+    const answeredTableQuestions = Object.keys(tableAnswers.table_questions || {}).length;
+    
+    // Count column questions
+    const totalColumnQuestions = currentTable.columns.reduce((sum, col) => sum + col.questions_for_user.length, 0);
+    const answeredColumnQuestions = currentTable.columns.reduce((sum, col) => {
+      const colAnswers = tableAnswers[col.column_name] || {};
+      return sum + Object.keys(colAnswers).length;
+    }, 0);
+    
+    const totalQuestions = tableQuestionCount + totalColumnQuestions;
+    const answeredQuestions = answeredTableQuestions + answeredColumnQuestions;
+    
     return { answered: answeredQuestions, total: totalQuestions };
   };
 
@@ -132,7 +150,7 @@ export function InteractiveAnnotationHandler({
       <Card className="border-l-4 border-l-primary">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <HelpCircle className="h-5 w-5 text-primary" />
+            <Database className="h-5 w-5 text-primary" />
             {currentTable.table_name}
           </CardTitle>
           <CardDescription className="text-base">
@@ -140,18 +158,63 @@ export function InteractiveAnnotationHandler({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Table Description Validation */}
-          <div className="space-y-3">
-            <Label className="text-base font-medium">
-              Is this table description accurate? Please provide corrections or additional context:
-            </Label>
-            <Textarea
-              placeholder="Confirm or correct the table description..."
-              value={answers[currentTable.table_name]?.table_description || ''}
-              onChange={(e) => handleTableDescriptionAnswer(currentTable.table_name, e.target.value)}
-              className="min-h-[80px]"
-            />
-          </div>
+          {/* Table Context Questions */}
+          {currentTable.table_questions && currentTable.table_questions.length > 0 && (
+            <div className="space-y-4">
+              <h5 className="font-medium text-lg flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Table Context Questions
+              </h5>
+              {currentTable.table_questions.map((question, questionIndex) => (
+                <Card key={questionIndex} className="bg-blue-50/50 border-blue-200">
+                  <CardContent className="pt-4 space-y-3">
+                    <Label className="text-sm font-medium">
+                      {question.question_text}
+                    </Label>
+                    
+                    {question.question_type === 'yes_no' && (
+                      <RadioGroup
+                        value={answers[currentTable.table_name]?.table_questions?.[`question_${questionIndex}`] || ''}
+                        onValueChange={(value) => handleTableQuestionAnswer(currentTable.table_name, questionIndex, value)}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="yes" id={`table-${questionIndex}-yes`} />
+                          <Label htmlFor={`table-${questionIndex}-yes`}>Yes</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="no" id={`table-${questionIndex}-no`} />
+                          <Label htmlFor={`table-${questionIndex}-no`}>No</Label>
+                        </div>
+                      </RadioGroup>
+                    )}
+                    
+                    {question.question_type === 'multiple_choice' && question.options && (
+                      <RadioGroup
+                        value={answers[currentTable.table_name]?.table_questions?.[`question_${questionIndex}`] || ''}
+                        onValueChange={(value) => handleTableQuestionAnswer(currentTable.table_name, questionIndex, value)}
+                      >
+                        {question.options.map((option, optIndex) => (
+                          <div key={optIndex} className="flex items-center space-x-2">
+                            <RadioGroupItem value={option} id={`table-${questionIndex}-${optIndex}`} />
+                            <Label htmlFor={`table-${questionIndex}-${optIndex}`}>{option}</Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    )}
+                    
+                    {question.question_type === 'free_text_definitions' && (
+                      <Textarea
+                        placeholder="Please provide detailed explanation..."
+                        value={answers[currentTable.table_name]?.table_questions?.[`question_${questionIndex}`] || ''}
+                        onChange={(e) => handleTableQuestionAnswer(currentTable.table_name, questionIndex, e.target.value)}
+                        className="min-h-[80px]"
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {/* Column Questions */}
           <div className="space-y-6">
@@ -177,50 +240,52 @@ export function InteractiveAnnotationHandler({
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {column.questions_for_user.map((question, questionIndex) => (
-                    <div key={questionIndex} className="space-y-3">
-                      <Label className="text-sm font-medium">
-                        {question.question_text}
-                      </Label>
-                      
-                      {question.question_type === 'yes_no' && (
-                        <RadioGroup
-                          value={answers[currentTable.table_name]?.[column.column_name]?.[`question_${questionIndex}`] || ''}
-                          onValueChange={(value) => handleAnswer(currentTable.table_name, column.column_name, questionIndex, value)}
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="yes" id={`${colIndex}-${questionIndex}-yes`} />
-                            <Label htmlFor={`${colIndex}-${questionIndex}-yes`}>Yes, correct</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="no" id={`${colIndex}-${questionIndex}-no`} />
-                            <Label htmlFor={`${colIndex}-${questionIndex}-no`}>No, needs correction</Label>
-                          </div>
-                        </RadioGroup>
-                      )}
-                      
-                      {question.question_type === 'multiple_choice' && question.options && (
-                        <RadioGroup
-                          value={answers[currentTable.table_name]?.[column.column_name]?.[`question_${questionIndex}`] || ''}
-                          onValueChange={(value) => handleAnswer(currentTable.table_name, column.column_name, questionIndex, value)}
-                        >
-                          {question.options.map((option, optIndex) => (
-                            <div key={optIndex} className="flex items-center space-x-2">
-                              <RadioGroupItem value={option} id={`${colIndex}-${questionIndex}-${optIndex}`} />
-                              <Label htmlFor={`${colIndex}-${questionIndex}-${optIndex}`}>{option}</Label>
+                    <Card key={questionIndex} className="bg-white/50">
+                      <CardContent className="pt-4 space-y-3">
+                        <Label className="text-sm font-medium">
+                          <span className="text-blue-600">Q{questionIndex + 1}:</span> {question.question_text}
+                        </Label>
+                        
+                        {question.question_type === 'yes_no' && (
+                          <RadioGroup
+                            value={answers[currentTable.table_name]?.[column.column_name]?.[`question_${questionIndex}`] || ''}
+                            onValueChange={(value) => handleAnswer(currentTable.table_name, column.column_name, questionIndex, value)}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="yes" id={`${colIndex}-${questionIndex}-yes`} />
+                              <Label htmlFor={`${colIndex}-${questionIndex}-yes`}>Yes, correct</Label>
                             </div>
-                          ))}
-                        </RadioGroup>
-                      )}
-                      
-                      {question.question_type === 'free_text_definitions' && (
-                        <Textarea
-                          placeholder="Please provide definitions or corrections..."
-                          value={answers[currentTable.table_name]?.[column.column_name]?.[`question_${questionIndex}`] || ''}
-                          onChange={(e) => handleAnswer(currentTable.table_name, column.column_name, questionIndex, e.target.value)}
-                          className="min-h-[60px]"
-                        />
-                      )}
-                    </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="no" id={`${colIndex}-${questionIndex}-no`} />
+                              <Label htmlFor={`${colIndex}-${questionIndex}-no`}>No, needs correction</Label>
+                            </div>
+                          </RadioGroup>
+                        )}
+                        
+                        {question.question_type === 'multiple_choice' && question.options && (
+                          <RadioGroup
+                            value={answers[currentTable.table_name]?.[column.column_name]?.[`question_${questionIndex}`] || ''}
+                            onValueChange={(value) => handleAnswer(currentTable.table_name, column.column_name, questionIndex, value)}
+                          >
+                            {question.options.map((option, optIndex) => (
+                              <div key={optIndex} className="flex items-center space-x-2">
+                                <RadioGroupItem value={option} id={`${colIndex}-${questionIndex}-${optIndex}`} />
+                                <Label htmlFor={`${colIndex}-${questionIndex}-${optIndex}`}>{option}</Label>
+                              </div>
+                            ))}
+                          </RadioGroup>
+                        )}
+                        
+                        {question.question_type === 'free_text_definitions' && (
+                          <Textarea
+                            placeholder="Please provide definitions or corrections..."
+                            value={answers[currentTable.table_name]?.[column.column_name]?.[`question_${questionIndex}`] || ''}
+                            onChange={(e) => handleAnswer(currentTable.table_name, column.column_name, questionIndex, e.target.value)}
+                            className="min-h-[60px]"
+                          />
+                        )}
+                      </CardContent>
+                    </Card>
                   ))}
                 </CardContent>
               </Card>
