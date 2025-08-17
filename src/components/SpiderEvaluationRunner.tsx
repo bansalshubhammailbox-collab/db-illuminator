@@ -8,18 +8,41 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TestTube, ArrowRight, CheckCircle, AlertCircle, Loader2, Database, Brain, Target, BarChart3 } from "lucide-react";
 import { runSpiderEvaluation } from "@/lib/evaluationService";
 
-interface EvaluationResults {
+interface SQLQueryResult {
+  query: string;
+  expected_result: string;
+  schemaResults: {
+    raw: { result: string; is_correct: boolean; error_message?: string };
+    hypothesis: { result: string; is_correct: boolean; error_message?: string };
+    annotated: { result: string; is_correct: boolean; error_message?: string };
+  };
+  difficulty_level: string;
+  bestPerformingSchema: 'raw' | 'hypothesis' | 'annotated';
+}
+
+interface SchemaEvaluationResult {
+  schemaType: 'raw' | 'hypothesis' | 'annotated';
   accuracy: number;
-  totalQueries: number;
   correctQueries: number;
+  description: string;
+}
+
+interface EvaluationResults {
+  schemaResults: SchemaEvaluationResult[];
+  totalQueries: number;
   executionTime: number;
   difficulty: string;
   database: string;
-  annotationImpact: {
-    withAnnotations: number;
-    withoutAnnotations: number;
-    improvement: number;
+  baselineCalculation: {
+    description: string;
+    method: string;
+    schemaTypes: {
+      raw: { description: string; factors: string[] };
+      hypothesis: { description: string; factors: string[] };
+      annotated: { description: string; factors: string[] };
+    };
   };
+  sqlQueries: SQLQueryResult[];
 }
 
 export function SpiderEvaluationRunner() {
@@ -33,11 +56,10 @@ export function SpiderEvaluationRunner() {
   const phases = [
     "Connecting to Snowflake database...",
     "Loading Spider test cases...",
-    "Running baseline evaluation...", 
-    "Applying annotations to schema...",
-    "Generating SQL queries with LLM...",
-    "Executing queries and validating...",
-    "Calculating accuracy scores..."
+    "Running evaluation on raw schema (no annotations)...",
+    "Running evaluation on LLM-enhanced schema...",
+    "Running evaluation on fully annotated schema...",
+    "Calculating comparative results..."
   ];
 
   const handleRunEvaluation = async () => {
@@ -211,19 +233,14 @@ export function SpiderEvaluationRunner() {
           {/* Main Results Card */}
           <Card className="border-l-4 border-l-primary">
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Spider Benchmark Results</span>
-                <div className={`text-2xl font-bold ${getAccuracyColor(results.accuracy)}`}>
-                  {results.accuracy.toFixed(1)}%
-                </div>
-              </CardTitle>
+              <CardTitle>Spider Benchmark Comparative Results</CardTitle>
+              <CardDescription>
+                Performance comparison across different schema enhancement approaches
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">{results.correctQueries}</div>
-                  <div className="text-sm text-muted-foreground">Correct Queries</div>
-                </div>
+            <CardContent className="space-y-6">
+              {/* Overall Stats */}
+              <div className="grid md:grid-cols-3 gap-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-secondary-foreground">{results.totalQueries}</div>
                   <div className="text-sm text-muted-foreground">Total Queries</div>
@@ -239,21 +256,129 @@ export function SpiderEvaluationRunner() {
                 </div>
               </div>
 
-              {/* Annotation Impact */}
-              {results.annotationImpact && (
+              {/* Schema Results Comparison */}
+              <div className="space-y-4">
+                <h5 className="font-semibold text-center">Performance by Schema Type</h5>
+                <div className="grid md:grid-cols-3 gap-4">
+                  {results.schemaResults.map((schema) => (
+                    <Card key={schema.schemaType} className="border-2">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg flex items-center justify-between">
+                          <span className="capitalize">{schema.schemaType}</span>
+                          <div className={`text-xl font-bold ${getAccuracyColor(schema.accuracy)}`}>
+                            {schema.accuracy.toFixed(1)}%
+                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">Correct:</span>
+                            <span className="font-medium">{schema.correctQueries}/{results.totalQueries}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{schema.description}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Performance Improvement Analysis */}
+              {results.schemaResults.length >= 2 && (
                 <Alert className="border-accent/20 bg-accent/5">
                   <BarChart3 className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>Annotation Impact:</strong> 
-                    <span className={`ml-2 font-bold ${results.annotationImpact.improvement > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {results.annotationImpact.improvement > 0 ? '+' : ''}{results.annotationImpact.improvement.toFixed(1)}% 
-                    </span>
-                    improvement with annotations ({results.annotationImpact.withAnnotations.toFixed(1)}% vs {results.annotationImpact.withoutAnnotations.toFixed(1)}% baseline)
+                    <strong>Enhancement Impact:</strong>
+                    <div className="mt-2 space-y-1">
+                      {results.schemaResults[1] && (
+                        <div>
+                          <strong>Hypothesis Schema:</strong> 
+                          <span className={`ml-2 font-bold ${(results.schemaResults[1].accuracy - results.schemaResults[0].accuracy) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {(results.schemaResults[1].accuracy - results.schemaResults[0].accuracy) > 0 ? '+' : ''}
+                            {(results.schemaResults[1].accuracy - results.schemaResults[0].accuracy).toFixed(1)}%
+                          </span>
+                          {' '}improvement over raw schema
+                        </div>
+                      )}
+                      {results.schemaResults[2] && (
+                        <div>
+                          <strong>Annotated Schema:</strong> 
+                          <span className={`ml-2 font-bold ${(results.schemaResults[2].accuracy - results.schemaResults[0].accuracy) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {(results.schemaResults[2].accuracy - results.schemaResults[0].accuracy) > 0 ? '+' : ''}
+                            {(results.schemaResults[2].accuracy - results.schemaResults[0].accuracy).toFixed(1)}%
+                          </span>
+                          {' '}improvement over raw schema
+                        </div>
+                      )}
+                    </div>
                   </AlertDescription>
                 </Alert>
               )}
             </CardContent>
           </Card>
+
+          {/* SQL Query Details */}
+          {results.sqlQueries && results.sqlQueries.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>SQL Query Performance Details</CardTitle>
+                <CardDescription>
+                  Detailed breakdown showing how each schema type performed on individual queries
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {results.sqlQueries.map((query, index) => (
+                    <div key={index} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <h6 className="font-medium">Query {index + 1}</h6>
+                        <Badge variant={query.difficulty_level === 'Easy' ? 'default' : 
+                                       query.difficulty_level === 'Medium' ? 'secondary' : 'destructive'}>
+                          {query.difficulty_level}
+                        </Badge>
+                      </div>
+                      
+                      <div className="bg-muted/30 p-3 rounded text-sm font-mono">
+                        {query.query}
+                      </div>
+                      
+                      <div className="text-sm text-muted-foreground">
+                        <strong>Expected:</strong> {query.expected_result}
+                      </div>
+
+                      <div className="grid md:grid-cols-3 gap-3">
+                        {Object.entries(query.schemaResults).map(([schemaType, result]) => (
+                          <div key={schemaType} className={`p-3 rounded border ${
+                            result.is_correct ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                          }`}>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium capitalize">{schemaType}</span>
+                              {result.is_correct ? (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <AlertCircle className="h-4 w-4 text-red-600" />
+                              )}
+                            </div>
+                            <div className="text-sm">
+                              <div className="mb-1">{result.result}</div>
+                              {result.error_message && (
+                                <div className="text-red-600 text-xs">{result.error_message}</div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="text-sm text-center text-muted-foreground">
+                        Best performing schema: <strong className="capitalize">{query.bestPerformingSchema}</strong>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Continue Button */}
           <div className="flex justify-center">
