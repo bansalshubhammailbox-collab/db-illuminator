@@ -3,6 +3,8 @@ import { HeroSection } from "@/components/HeroSection";
 import { ProcessOverview } from "@/components/ProcessOverview";
 import { CredentialStatus } from "@/components/CredentialStatus";
 import { DatabaseSelector } from "@/components/DatabaseSelector";
+import { EvaluationValidator } from "@/components/EvaluationValidator";
+import { EvaluationProvider, useEvaluation } from "@/contexts/EvaluationContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,9 +20,16 @@ import {
 } from "lucide-react";
 
 const Index = () => {
-  const [activeStep, setActiveStep] = useState(1);
-  const [selectedDatabase, setSelectedDatabase] = useState(null);
+  return (
+    <EvaluationProvider>
+      <IndexContent />
+    </EvaluationProvider>
+  );
+};
+
+const IndexContent = () => {
   const [showDatabaseSelector, setShowDatabaseSelector] = useState(false);
+  const { state, setSelectedDatabase, setCurrentStep } = useEvaluation();
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -40,21 +49,32 @@ const Index = () => {
               onSelect={(db) => {
                 setSelectedDatabase(db);
                 setShowDatabaseSelector(false);
-                setActiveStep(2);
+                setCurrentStep(2);
               }} 
-              selectedDatabase={selectedDatabase}
+              selectedDatabase={state.selectedDatabase}
             />
           </div>
         </section>
       ) : (
-        <ProcessOverview 
-          activeStep={activeStep} 
-          onStartStep={(step) => {
-            if (step === 1) {
-              setShowDatabaseSelector(true);
-            }
-          }}
-        />
+        <>
+          <ProcessOverview 
+            activeStep={state.currentStep} 
+            onStartStep={(step) => {
+              if (step === 1) {
+                setShowDatabaseSelector(true);
+              }
+            }}
+          />
+          
+          {/* Evaluation Status Section */}
+          {state.selectedDatabase && (
+            <section className="py-8 bg-background/30">
+              <div className="container mx-auto px-4 max-w-2xl">
+                <EvaluationValidator />
+              </div>
+            </section>
+          )}
+        </>
       )}
       
       {/* Features Section */}

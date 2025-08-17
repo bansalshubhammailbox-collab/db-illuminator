@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useEvaluation, Database } from "@/contexts/EvaluationContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Database, Check, ArrowRight, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Database as DatabaseIcon, Check, ArrowRight, Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 const spiderDatabases = [
   // Easy databases
@@ -57,8 +58,8 @@ const spiderDatabases = [
 ];
 
 interface DatabaseSelectorProps {
-  onSelect: (database: typeof spiderDatabases[0]) => void;
-  selectedDatabase?: typeof spiderDatabases[0];
+  onSelect: (database: Database) => void;
+  selectedDatabase?: Database | null;
 }
 
 export function DatabaseSelector({ onSelect, selectedDatabase }: DatabaseSelectorProps) {
@@ -161,7 +162,7 @@ export function DatabaseSelector({ onSelect, selectedDatabase }: DatabaseSelecto
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Database className="h-5 w-5 text-primary" />
+                  <DatabaseIcon className="h-5 w-5 text-primary" />
                   <CardTitle className="text-lg">{db.name}</CardTitle>
                 </div>
                 {selectedDatabase?.id === db.id && (
@@ -190,7 +191,7 @@ export function DatabaseSelector({ onSelect, selectedDatabase }: DatabaseSelecto
         {/* No results message */}
         {currentDatabases.length === 0 && (
           <div className="col-span-full text-center py-12">
-            <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <DatabaseIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No databases found</h3>
             <p className="text-muted-foreground">Try adjusting your search or filter criteria.</p>
           </div>
