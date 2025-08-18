@@ -44,9 +44,43 @@ export function ResultsSaver() {
     resetEvaluation();
   };
 
-  const formatAccuracy = (accuracy: number) => {
+  const formatAccuracy = (accuracy?: number) => {
+    if (accuracy === undefined || accuracy === null) return <span className="text-muted-foreground">N/A</span>;
     const color = accuracy >= 80 ? "text-green-600" : accuracy >= 60 ? "text-yellow-600" : "text-red-600";
     return <span className={`font-bold ${color}`}>{accuracy.toFixed(1)}%</span>;
+  };
+
+  const getBestAccuracy = () => {
+    if (!state.evaluationResults?.schemaResults?.length) return undefined;
+    return Math.max(...state.evaluationResults.schemaResults.map(result => result.accuracy || 0));
+  };
+
+  const getTotalQueries = () => {
+    return state.evaluationResults?.totalQueries || 0;
+  };
+
+  const getBestCorrectQueries = () => {
+    if (!state.evaluationResults?.schemaResults?.length) return 0;
+    const bestSchema = state.evaluationResults.schemaResults.reduce((best, current) => 
+      (current.accuracy || 0) > (best.accuracy || 0) ? current : best
+    );
+    return bestSchema.correctQueries || 0;
+  };
+
+  const getAnnotationImpact = () => {
+    if (!state.evaluationResults?.schemaResults?.length || state.evaluationResults.schemaResults.length < 2) {
+      return null;
+    }
+    
+    const rawAccuracy = state.evaluationResults.schemaResults[0]?.accuracy || 0;
+    const bestAccuracy = getBestAccuracy() || 0;
+    const improvement = bestAccuracy - rawAccuracy;
+    
+    return {
+      withoutAnnotations: rawAccuracy,
+      withAnnotations: bestAccuracy,
+      improvement
+    };
   };
 
   if (!state.evaluationResults) {
@@ -73,7 +107,7 @@ export function ResultsSaver() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Evaluation Summary</span>
-            {formatAccuracy(state.evaluationResults.accuracy)}
+            {formatAccuracy(getBestAccuracy())}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -99,7 +133,7 @@ export function ResultsSaver() {
             <div className="flex items-center gap-2">
               <Target className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">
-                <strong>{state.evaluationResults.correctQueries}/{state.evaluationResults.totalQueries}</strong>
+                <strong>{getBestCorrectQueries()}/{getTotalQueries()}</strong>
                 <br />
                 <span className="text-muted-foreground">Correct queries</span>
               </span>
@@ -108,7 +142,7 @@ export function ResultsSaver() {
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">
-                <strong>+{state.evaluationResults.annotationImpact?.improvement.toFixed(1)}%</strong>
+                <strong>{getAnnotationImpact() ? `+${getAnnotationImpact()!.improvement.toFixed(1)}%` : 'N/A'}</strong>
                 <br />
                 <span className="text-muted-foreground">With annotations</span>
               </span>
@@ -116,16 +150,16 @@ export function ResultsSaver() {
           </div>
 
           {/* Annotation Impact Details */}
-          {state.evaluationResults.annotationImpact && (
+          {getAnnotationImpact() && (
             <Alert className="border-accent/20 bg-accent/5">
               <BarChart3 className="h-4 w-4" />
               <AlertDescription>
                 <strong>Annotation Impact:</strong> Your custom annotations improved accuracy by{' '}
                 <span className="font-bold text-green-600">
-                  +{state.evaluationResults.annotationImpact.improvement.toFixed(1)}%
+                  +{getAnnotationImpact()!.improvement.toFixed(1)}%
                 </span>{' '}
-                ({state.evaluationResults.annotationImpact.withAnnotations.toFixed(1)}% vs{' '}
-                {state.evaluationResults.annotationImpact.withoutAnnotations.toFixed(1)}% baseline)
+                ({getAnnotationImpact()!.withAnnotations.toFixed(1)}% vs{' '}
+                {getAnnotationImpact()!.withoutAnnotations.toFixed(1)}% baseline)
               </AlertDescription>
             </Alert>
           )}
