@@ -39,7 +39,7 @@ export function SavedRunsViewer() {
         const runs = await getSavedRuns();
         
         // Transform the data to match our component interface
-        const transformedRuns: SavedRun[] = runs.map((run: SavedEvaluationRun) => {
+        const transformedRuns: SavedRun[] = (runs || []).map((run: SavedEvaluationRun) => {
           const results = run.evaluation_results;
           const bestSchema = results?.schemaResults?.reduce((best: any, current: any) => 
             (current.accuracy || 0) > (best.accuracy || 0) ? current : best
@@ -98,7 +98,7 @@ export function SavedRunsViewer() {
   return (
     <div className="space-y-4">
       <div className="grid gap-4">
-        {savedRuns.map((run) => (
+        {(savedRuns || []).map((run) => (
           <Card key={run.runId} className="hover:shadow-md transition-shadow">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -183,12 +183,12 @@ export function SavedRunsViewer() {
                                     <p><strong>Description:</strong> {selectedRun.baselineCalculation.description}</p>
                                     <p><strong>Method:</strong> {selectedRun.baselineCalculation.method}</p>
                                     <div>
-                                      <strong>Factors Considered:</strong>
-                                      <ul className="list-disc list-inside mt-2 space-y-1">
-                                        {selectedRun.baselineCalculation.factors.map((factor: string, index: number) => (
-                                          <li key={index} className="text-sm">{factor}</li>
-                                        ))}
-                                      </ul>
+                                       <strong>Factors Considered:</strong>
+                                       <ul className="list-disc list-inside mt-2 space-y-1">
+                                         {(selectedRun.baselineCalculation?.factors || []).map((factor: string, index: number) => (
+                                           <li key={index} className="text-sm">{factor}</li>
+                                         ))}
+                                       </ul>
                                     </div>
                                   </CardContent>
                                 </Card>
@@ -230,8 +230,8 @@ export function SavedRunsViewer() {
                           <TabsContent value="queries" className="space-y-4">
                             {selectedRun.sqlQueries && selectedRun.sqlQueries.length > 0 ? (
                               <ScrollArea className="h-[400px]">
-                                <div className="space-y-4">
-                                  {selectedRun.sqlQueries.map((query, index) => (
+                                 <div className="space-y-4">
+                                   {(selectedRun.sqlQueries || []).map((query, index) => (
                                     <Card key={index} className={query.is_correct ? "border-green-200 bg-green-50/30" : "border-red-200 bg-red-50/30"}>
                                       <CardHeader className="pb-2">
                                         <div className="flex items-center justify-between">
