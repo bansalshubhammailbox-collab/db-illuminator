@@ -91,7 +91,11 @@ async function testSnowflakeConnection(config: {
     // Use Snowflake REST API for connection test
     // Format account correctly: RSRSBDK-YDB67606 -> rsrsbdk-ydb67606.snowflakecomputing.com
     const formattedAccount = config.account.toLowerCase();
-    const authUrl = `https://${formattedAccount}.snowflakecomputing.com/session/v1/login-request`;
+    // Ensure hyphen is preserved in account format
+    const correctAccountFormat = formattedAccount.includes('.') ? formattedAccount.replace('.', '-') : formattedAccount;
+    const authUrl = `https://${correctAccountFormat}.snowflakecomputing.com/session/v1/login-request`;
+    console.log(`Raw account: ${config.account}`);
+    console.log(`Formatted account: ${correctAccountFormat}`);
     console.log(`Attempting connection to: ${authUrl}`);
     
     const authResponse = await fetch(authUrl, {
