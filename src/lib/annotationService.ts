@@ -48,52 +48,51 @@ interface AnnotationOptions {
 }
 
  export async function generateDatabaseAnnotations(
-    database: string,
+    database: Database,
     options: AnnotationOptions = {}
-  ): Promise<DatabaseAnnotations> {
+  ): Promise<TableAnnotation[] | InteractiveAnnotationResult> {
     try {
-      // Real Gemini API call
-      const prompt = `Database: ${database}\nGenerate realistic annotations for this database with tables and
-  columns. Return JSON format with database name, tables, hypotheses, and questions.`;
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateCont
-  ent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
-      });
-
-      const data = await response.json();
-      const text = data.candidates[0].content.parts[0].text;
-
-      // Try to parse JSON from response
-      let jsonText = text;
-      if (text.includes('```json')) {
-        const start = text.indexOf('```json') + 7;
-        const end = text.indexOf('```', start);
-        jsonText = text.substring(start, end).trim();
+      console.log(`Generating annotations for ${database.name} with options:`, options);
+      
+      // Check if interactive mode
+      if (options.processType === 'interactive') {
+        const schemaInfo = await getRealisticDatabaseSchema(database);
+        const sampleData = await generateSampleDataFromTables(database, schemaInfo.tables, options.rowLimit || 5);
+        
+        return generateInteractiveQuestions(
+          database,
+          "Generate interactive questions",
+          schemaInfo,
+          sampleData,
+          options.customSampling
+        ) as any;
       }
-
-      return JSON.parse(jsonText);
+      
+      // Standard annotation generation
+      const schemaInfo = await getRealisticDatabaseSchema(database);
+      const annotations: TableAnnotation[] = schemaInfo.tables.map(table => ({
+        tableName: table.name,
+        description: `This table stores ${getTablePurpose(table.name)} for the ${database.name} system.`,
+        columns: table.columns.map((col: any) => ({
+          name: col.name,
+          type: col.type,
+          description: getColumnHypothesis(col.name, col.type, table.name),
+          businessContext: `Part of ${table.name} entity definition`
+        }))
+      }));
+      
+      return annotations;
     } catch (error) {
-      console.error('Gemini API error:', error);
-      // Fallback to smart mock data
-      return {
-        database,
-        annotations: {
-          tables: {
-            [database + '_CUSTOMERS']: {
-              hypothesis: "Customer data with real context from " + database,
-              questions: ["What customer segments exist?", "How is data updated?"],
-              columns: {
-                customer_id: { hypothesis: "Unique customer identifier", questions: ["Auto-generated?"] }
-              }
-            }
-          }
-        }
-      };
+      console.error('Annotation generation error:', error);
+      // Fallback to basic mock data
+      return [{
+        tableName: 'customers',
+        description: `Customer data for ${database.name} system`,
+        columns: [
+          { name: 'customer_id', type: 'NUMBER', description: 'Unique customer identifier' },
+          { name: 'name', type: 'VARCHAR', description: 'Customer full name' }
+        ]
+      }];
     }
   }
 

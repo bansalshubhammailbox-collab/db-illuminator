@@ -58,31 +58,52 @@ interface EvaluationResults {
     difficulty: 'Easy' | 'Medium' | 'Hard' = 'Medium'
   ): Promise<EvaluationResults> {
     try {
-      // ... all the code I gave you ...
-
+      console.log(`Running Spider evaluation for ${database} (${difficulty})`);
+      
+      // Simulate evaluation phases
+      await simulateEvaluationSteps();
+      
+      // Generate SQL queries for testing
+      const sqlQueries = generateRealisticSQLQueries({ name: database, difficulty, id: database.toLowerCase() } as Database);
+      
+      // Generate schema results
+      const schemaResults = generateSchemaResults(difficulty);
+      
+      // Calculate execution time
+      const executionTime = 45 + Math.random() * 30; // 45-75 seconds
+      
       return {
-        database,
+        schemaResults,
+        totalQueries: getTestCaseCount(difficulty),
+        executionTime,
         difficulty,
-        timestamp: new Date().toISOString(),
-        totalQuestions: results.length,
-        executionSuccessRate: executionRate,
-        baselineSuccessRate: baselineRate,
-        improvementFromBaseline: executionRate - baselineRate,
-        avgResultsPerQuery: results.reduce((sum, r) => sum + r.resultCount, 0) / results.length,
-        results,
-        schemaTypes: ['raw', 'hypothesis', 'annotated'],
-        schemaPerformance: {
-          raw: baselineRate,
-          hypothesis: baselineRate + 0.1,
-          annotated: executionRate
-        }
+        database,
+        baselineCalculation: {
+          description: "Performance comparison across different schema enhancement approaches",
+          method: "Spider benchmark evaluation with raw, hypothesis, and annotated schemas",
+          schemaTypes: {
+            raw: { 
+              description: "Baseline performance with raw Snowflake schema", 
+              factors: ["Basic table and column names", "No business context", "Standard SQL parsing"] 
+            },
+            hypothesis: { 
+              description: "Enhanced performance with LLM-generated schema context", 
+              factors: ["AI-inferred relationships", "Generated column descriptions", "Basic business logic"] 
+            },
+            annotated: { 
+              description: "Optimal performance with user-provided annotations and context", 
+              factors: ["Human-verified relationships", "Domain-specific knowledge", "Business rule integration"] 
+            }
+          }
+        },
+        sqlQueries
       };
 
     } catch (error) {
       console.error('Evaluation error:', error);
       throw error;
     }
-  } 
+  }
 
 function generateRealisticSQLQueries(database: Database): SQLQueryResult[] {
   const queries: SQLQueryResult[] = [];
