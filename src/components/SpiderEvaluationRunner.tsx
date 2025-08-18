@@ -7,6 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TestTube, ArrowRight, CheckCircle, AlertCircle, Loader2, Database, Brain, Target, BarChart3 } from "lucide-react";
 import { runSpiderEvaluation } from "@/lib/evaluationService";
+import { saveEvaluationRun } from "@/lib/savedRunsService";
+import { useToast } from "@/hooks/use-toast";
 
 interface SQLQueryResult {
   query: string;
@@ -47,6 +49,7 @@ interface EvaluationResults {
 
 export function SpiderEvaluationRunner() {
   const { state, setEvaluationResults, setCurrentStep } = useEvaluation();
+  const { toast } = useToast();
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentPhase, setCurrentPhase] = useState<string>("");
@@ -93,6 +96,28 @@ export function SpiderEvaluationRunner() {
       setProgress(100);
       setResults(evaluationResults);
       setEvaluationResults(evaluationResults);
+
+      // Save the evaluation run
+      try {
+        const runId = await saveEvaluationRun({
+          database: state.selectedDatabase,
+          evaluationResults,
+          annotations: state.annotations,
+          customPrompt: state.customPrompt || ""
+        });
+        
+        toast({
+          title: "Evaluation Saved",
+          description: `Run ${runId} has been saved successfully.`,
+        });
+      } catch (saveError) {
+        console.error('Failed to save evaluation:', saveError);
+        toast({
+          title: "Save Failed",
+          description: "Evaluation completed but failed to save. Results are still available in this session.",
+          variant: "destructive"
+        });
+      }
 
     } catch (err) {
       setError(err instanceof Error ? err.message : "Evaluation failed");

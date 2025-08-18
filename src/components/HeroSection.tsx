@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Database, Brain, Target, ArrowRight } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Database, Brain, Target, ArrowRight, History } from "lucide-react";
 import heroImage from "@/assets/hero-database.jpg";
+import { SavedRunsViewer } from "@/components/SavedRunsViewer";
 
 export function HeroSection() {
+  const [savedRunsOpen, setSavedRunsOpen] = useState(false);
   return (
     <section className="relative min-h-[80vh] flex items-center overflow-hidden bg-gradient-subtle">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
@@ -40,10 +44,25 @@ export function HeroSection() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               
-              <Button variant="outline" size="lg" className="text-lg px-8">
-                View Spider Test
-                <Target className="ml-2 h-5 w-5" />
-              </Button>
+              <Dialog open={savedRunsOpen} onOpenChange={setSavedRunsOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="lg" className="text-lg px-8">
+                    <History className="mr-2 h-5 w-5" />
+                    View Saved Runs
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-6xl max-h-[80vh]">
+                  <DialogHeader>
+                    <DialogTitle>Saved Evaluation Runs</DialogTitle>
+                    <DialogDescription>
+                      View and analyze your previous Spider benchmark evaluation results
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="overflow-y-auto">
+                    <SavedRunsViewer />
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
 
             <div className="flex items-center gap-6 pt-4">

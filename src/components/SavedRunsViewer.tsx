@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { getSavedRuns, SavedEvaluationRun } from "@/lib/savedRunsService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,66 +33,43 @@ export function SavedRunsViewer() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading saved runs
     const loadSavedRuns = async () => {
       setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock data - in production this would come from Supabase
-      const mockRuns: SavedRun[] = [
-        {
-          runId: "run_1734543821_abc123",
-          timestamp: "2024-12-18T14:30:21.000Z",
-          database: "Car Dealership",
-          accuracy: 67.5,
-          totalQueries: 40,
-          correctQueries: 27,
-          difficulty: "Medium",
-          annotationImpact: {
-            withoutAnnotations: 45.2,
-            withAnnotations: 67.5,
-            improvement: 22.3
-          },
-          sqlQueries: [
-            {
-              query: "SELECT make, COUNT(*) FROM vehicles GROUP BY make",
-              expected_result: "Count by manufacturer",
-              actual_result: "Count by manufacturer", 
-              is_correct: true,
-              difficulty_level: "Easy"
+      try {
+        const runs = await getSavedRuns();
+        
+        // Transform the data to match our component interface
+        const transformedRuns: SavedRun[] = runs.map((run: SavedEvaluationRun) => {
+          const results = run.evaluation_results;
+          const bestSchema = results?.schemaResults?.reduce((best: any, current: any) => 
+            (current.accuracy || 0) > (best.accuracy || 0) ? current : best
+          );
+          
+          return {
+            runId: run.run_id,
+            timestamp: run.timestamp,
+            database: run.database_name,
+            accuracy: bestSchema?.accuracy || 0,
+            totalQueries: run.total_queries || 0,
+            correctQueries: bestSchema?.correctQueries || 0,
+            difficulty: results?.difficulty || 'Unknown',
+            annotationImpact: {
+              withoutAnnotations: results?.schemaResults?.[0]?.accuracy || 0,
+              withAnnotations: bestSchema?.accuracy || 0,
+              improvement: (bestSchema?.accuracy || 0) - (results?.schemaResults?.[0]?.accuracy || 0)
             },
-            {
-              query: "SELECT c.first_name, v.make FROM customers c JOIN sales s ON c.customer_id = s.customer_id JOIN vehicles v ON s.vehicle_id = v.vehicle_id",
-              expected_result: "Customer-vehicle relationships",
-              actual_result: "Error: ambiguous column reference",
-              is_correct: false,
-              difficulty_level: "Medium"
-            }
-          ],
-          baselineCalculation: {
-            description: "Standard Spider methodology without annotations",
-            method: "Text2SQL model on raw schema",
-            factors: ["Database complexity", "Query difficulty", "Schema ambiguity"]
-          }
-        },
-        {
-          runId: "run_1734543722_def456", 
-          timestamp: "2024-12-18T13:28:42.000Z",
-          database: "Academic",
-          accuracy: 82.1,
-          totalQueries: 28,
-          correctQueries: 23,
-          difficulty: "Easy",
-          annotationImpact: {
-            withoutAnnotations: 71.4,
-            withAnnotations: 82.1,
-            improvement: 10.7
-          }
-        }
-      ];
-      
-      setSavedRuns(mockRuns);
-      setIsLoading(false);
+            sqlQueries: results?.sqlQueries || [],
+            baselineCalculation: results?.baselineCalculation
+          };
+        });
+        
+        setSavedRuns(transformedRuns);
+      } catch (error) {
+        console.error('Failed to load saved runs:', error);
+        setSavedRuns([]);
+      } finally {
+        setIsLoading(false);
+      }
     };
     
     loadSavedRuns();
