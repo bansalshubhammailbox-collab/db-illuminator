@@ -246,7 +246,7 @@ export function SpiderEvaluationRunner() {
                   <div className="text-sm text-muted-foreground">Total Queries</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-accent">{results.executionTime.toFixed(1)}s</div>
+                  <div className="text-2xl font-bold text-accent">{results.executionTime?.toFixed(1) || '0'}s</div>
                   <div className="text-sm text-muted-foreground">Execution Time</div>
                 </div>
                 <div className="text-center">
@@ -265,8 +265,8 @@ export function SpiderEvaluationRunner() {
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg flex items-center justify-between">
                           <span className="capitalize">{schema.schemaType}</span>
-                          <div className={`text-xl font-bold ${getAccuracyColor(schema.accuracy)}`}>
-                            {schema.accuracy.toFixed(1)}%
+                          <div className={`text-xl font-bold ${getAccuracyColor(schema.accuracy || 0)}`}>
+                            {schema.accuracy?.toFixed(1) || '0'}%
                           </div>
                         </CardTitle>
                       </CardHeader>
@@ -291,22 +291,22 @@ export function SpiderEvaluationRunner() {
                   <AlertDescription>
                     <strong>Enhancement Impact:</strong>
                     <div className="mt-2 space-y-1">
-                      {results.schemaResults[1] && (
+                      {results.schemaResults[1] && results.schemaResults[0] && (
                         <div>
                           <strong>Hypothesis Schema:</strong> 
-                          <span className={`ml-2 font-bold ${(results.schemaResults[1].accuracy - results.schemaResults[0].accuracy) > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {(results.schemaResults[1].accuracy - results.schemaResults[0].accuracy) > 0 ? '+' : ''}
-                            {(results.schemaResults[1].accuracy - results.schemaResults[0].accuracy).toFixed(1)}%
+                          <span className={`ml-2 font-bold ${((results.schemaResults[1].accuracy || 0) - (results.schemaResults[0].accuracy || 0)) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {((results.schemaResults[1].accuracy || 0) - (results.schemaResults[0].accuracy || 0)) > 0 ? '+' : ''}
+                            {((results.schemaResults[1].accuracy || 0) - (results.schemaResults[0].accuracy || 0)).toFixed(1)}%
                           </span>
                           {' '}improvement over raw schema
                         </div>
                       )}
-                      {results.schemaResults[2] && (
+                      {results.schemaResults[2] && results.schemaResults[0] && (
                         <div>
                           <strong>Annotated Schema:</strong> 
-                          <span className={`ml-2 font-bold ${(results.schemaResults[2].accuracy - results.schemaResults[0].accuracy) > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {(results.schemaResults[2].accuracy - results.schemaResults[0].accuracy) > 0 ? '+' : ''}
-                            {(results.schemaResults[2].accuracy - results.schemaResults[0].accuracy).toFixed(1)}%
+                          <span className={`ml-2 font-bold ${((results.schemaResults[2].accuracy || 0) - (results.schemaResults[0].accuracy || 0)) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {((results.schemaResults[2].accuracy || 0) - (results.schemaResults[0].accuracy || 0)) > 0 ? '+' : ''}
+                            {((results.schemaResults[2].accuracy || 0) - (results.schemaResults[0].accuracy || 0)).toFixed(1)}%
                           </span>
                           {' '}improvement over raw schema
                         </div>
