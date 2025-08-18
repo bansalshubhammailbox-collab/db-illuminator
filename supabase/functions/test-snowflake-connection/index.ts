@@ -30,6 +30,8 @@ serve(async (req) => {
     }
 
     console.log(`Testing Snowflake connection for ${database.name}`);
+    console.log(`Account from env: ${snowflakeAccount}`);
+    console.log(`User from env: ${snowflakeUser}`);
     
     // Test real Snowflake connection
     const connectionTest = await testSnowflakeConnection({
@@ -87,7 +89,10 @@ async function testSnowflakeConnection(config: {
 }) {
   try {
     // Use Snowflake REST API for connection test
-    const authUrl = `https://${config.account}.snowflakecomputing.com/session/v1/login-request`;
+    // Format account correctly: RSRSBDK-YDB67606 -> rsrsbdk-ydb67606.snowflakecomputing.com
+    const formattedAccount = config.account.toLowerCase();
+    const authUrl = `https://${formattedAccount}.snowflakecomputing.com/session/v1/login-request`;
+    console.log(`Attempting connection to: ${authUrl}`);
     
     const authResponse = await fetch(authUrl, {
       method: 'POST',
