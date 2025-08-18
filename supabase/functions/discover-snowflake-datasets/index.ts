@@ -98,7 +98,9 @@ serve(async (req) => {
 
 async function authenticateSnowflake(config: any) {
   try {
-    const authUrl = `https://${config.account}.snowflakecomputing.com/session/v1/login-request`;
+    // Convert account format for Snowflake URL - use lowercase
+    const accountUrl = config.account.toLowerCase();
+    const authUrl = `https://${accountUrl}.snowflakecomputing.com/session/v1/login-request`;
     
     console.log(`Authenticating with Snowflake at: ${authUrl}`);
     
@@ -140,7 +142,9 @@ async function authenticateSnowflake(config: any) {
 
 async function executeSnowflakeQuery(sessionToken: string, config: any, sql: string) {
   try {
-    const queryUrl = `https://${config.account}.snowflakecomputing.com/queries/v1/query-request`;
+    // Convert account format for Snowflake URL - use lowercase
+    const accountUrl = config.account.toLowerCase();
+    const queryUrl = `https://${accountUrl}.snowflakecomputing.com/queries/v1/query-request`;
     
     console.log(`Executing query at: ${queryUrl}`);
     
