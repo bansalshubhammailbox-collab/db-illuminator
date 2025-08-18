@@ -30,9 +30,9 @@ serve(async (req) => {
     console.log(`Running Spider evaluation for ${database.name}: ${evaluationType}`);
 
     // Get credentials from environment variables
-    const snowflakeUser = Deno.env.get('SNOWFLAKE_USER');
-    const snowflakePassword = Deno.env.get('SNOWFLAKE_PASSWORD');
-    const snowflakeAccount = Deno.env.get('SNOWFLAKE_ACCOUNT');
+    const snowflakeUser = Deno.env.get('SPIDER_SNOWFLAKE_USER');
+    const snowflakePassword = Deno.env.get('SPIDER_SNOWFLAKE_PASSWORD');
+    const snowflakeAccount = Deno.env.get('SPIDER_SNOWFLAKE_ACCOUNT');
 
     if (!snowflakeUser || !snowflakePassword || !snowflakeAccount) {
       throw new Error('Snowflake credentials not configured');

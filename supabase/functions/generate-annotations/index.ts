@@ -36,10 +36,10 @@ serve(async (req) => {
     console.log(`Generating annotations for ${database.name} with ${processType} process, ${rowLimit} row limit`);
 
     // Get credentials from environment variables
-    const snowflakeUser = Deno.env.get('SNOWFLAKE_USER');
-    const snowflakePassword = Deno.env.get('SNOWFLAKE_PASSWORD');
-    const snowflakeAccount = Deno.env.get('SNOWFLAKE_ACCOUNT');
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    const snowflakeUser = Deno.env.get('SPIDER_SNOWFLAKE_USER');
+    const snowflakePassword = Deno.env.get('SPIDER_SNOWFLAKE_PASSWORD');
+    const snowflakeAccount = Deno.env.get('SPIDER_SNOWFLAKE_ACCOUNT');
+    const geminiApiKey = Deno.env.get('SPIDER_GEMINI_API_KEY');
 
     if (!snowflakeUser || !snowflakePassword || !snowflakeAccount) {
       throw new Error('Snowflake credentials not configured in environment variables');
