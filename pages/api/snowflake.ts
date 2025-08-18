@@ -1,77 +1,22 @@
  import { NextApiRequest, NextApiResponse } from 'next';
-  import snowflake from 'snowflake-sdk';
-
-  const createConnection = () => {
-    return snowflake.createConnection({
-      account: process.env.SNOWFLAKE_ACCOUNT!,
-      username: process.env.SNOWFLAKE_USER!,
-      password: process.env.SNOWFLAKE_PASSWORD!,
-      warehouse: process.env.SNOWFLAKE_WAREHOUSE,
-      database: process.env.SNOWFLAKE_DATABASE,
-      schema: process.env.SNOWFLAKE_SCHEMA,
-    });
-  };
 
   export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const connection = createConnection();
+    // For now, return the Spider2 database list
+    // We'll connect via SQL API later
+    const mockSpider2Databases = [
+      { name: 'ACADEMIC_MANAGEMENT', description: 'University academic system' },
+      { name: 'AUTOMOTIVE_SALES', description: 'Car dealership operations' },
+      { name: 'HEALTHCARE_ANALYTICS', description: 'Hospital patient management' },
+      { name: 'RETAIL_OPERATIONS', description: 'E-commerce retail system' },
+      { name: 'FINANCE_DATA', description: 'Banking transaction system' }
+    ];
 
     if (req.method === 'GET' && req.query.action === 'databases') {
-      try {
-        await new Promise((resolve, reject) => {
-          connection.connect((err) => {
-            if (err) reject(err);
-            else resolve(null);
-          });
-        });
-
-        const databases = await new Promise((resolve, reject) => {
-          connection.execute({
-            sqlText: 'SHOW DATABASES',
-            complete: (err, stmt, rows) => {
-              if (err) reject(err);
-              else resolve(rows);
-            }
-          });
-        });
-
-        res.status(200).json({ success: true, databases });
-      } catch (error) {
-        res.status(500).json({ success: false, error: (error as Error).message });
-      } finally {
-        connection.destroy();
-      }
-    }
-
-    else if (req.method === 'POST' && req.query.action === 'schema') {
-      const { database } = req.body;
-
-      try {
-        await new Promise((resolve, reject) => {
-          connection.connect((err) => {
-            if (err) reject(err);
-            else resolve(null);
-          });
-        });
-
-        const schema = await new Promise((resolve, reject) => {
-          connection.execute({
-            sqlText: `USE DATABASE ${database}; SHOW TABLES;`,
-            complete: (err, stmt, rows) => {
-              if (err) reject(err);
-              else resolve(rows);
-            }
-          });
-        });
-
-        res.status(200).json({ success: true, schema });
-      } catch (error) {
-        res.status(500).json({ success: false, error: (error as Error).message });
-      } finally {
-        connection.destroy();
-      }
-    }
-
-    else {
-      res.status(405).json({ error: 'Method not allowed' });
+      res.status(200).json({
+        success: true,
+        databases: mockSpider2Databases.map(db => [null, db.name, db.description])
+      });
+    } else {
+      res.status(200).json({ success: true, message: 'Snowflake API ready' });
     }
   }
