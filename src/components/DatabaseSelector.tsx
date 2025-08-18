@@ -9,25 +9,6 @@ import { useState, useEffect } from 'react';
 
 const spiderDatabases = [
   
- const [realDatabases, setRealDatabases] = useState(spiderDatabases);
-  const [loadingDatabases, setLoadingDatabases] = useState(false);
-
-  useEffect(() => {
-    // Enhanced database list with real Spider2 names
-    const enhancedDatabases = [
-      { name: 'ACADEMIC_MANAGEMENT', description: 'University academic system', difficulty: 'Medium', tables: 25 },
-      { name: 'AUTOMOTIVE_SALES', description: 'Car dealership operations', difficulty: 'Hard', tables: 35 },
-      { name: 'HEALTHCARE_ANALYTICS', description: 'Hospital patient management', difficulty: 'Hard', tables: 42 },
-      { name: 'RETAIL_OPERATIONS', description: 'E-commerce retail system', difficulty: 'Medium', tables: 28 },
-      { name: 'FINANCE_DATA', description: 'Banking transaction system', difficulty: 'Hard', tables: 38 },
-      { name: 'SUPPLY_CHAIN', description: 'Manufacturing supply chain', difficulty: 'Medium', tables: 30 },
-      { name: 'CUSTOMER_ANALYTICS', description: 'Customer behavior analysis', difficulty: 'Easy', tables: 18 },
-      { name: 'INVENTORY_MGMT', description: 'Warehouse inventory tracking', difficulty: 'Medium', tables: 22 }
-    ];
-
-    setRealDatabases(enhancedDatabases);
-  }, []);
-  
   // Easy databases
   { id: "academic", name: "Academic", description: "University database with students, courses, and departments", tables: 8, difficulty: "Easy" },
   { id: "concert_singer", name: "Concert Singer", description: "Concert and singer management with venues and performances", tables: 6, difficulty: "Easy" },
@@ -77,6 +58,26 @@ const spiderDatabases = [
   { id: "decoration_competition", name: "Decoration Contest", description: "Design competition with judges and entries", tables: 7, difficulty: "Hard" },
   { id: "department_management", name: "Department Management", description: "Corporate department and employee hierarchy", tables: 11, difficulty: "Hard" }
 ];
+
+const [realDatabases, setRealDatabases] = useState(spiderDatabases);
+  const [loadingDatabases, setLoadingDatabases] = useState(false);
+
+  useEffect(() => {
+    // Enhanced database list with real Spider2 names
+    const enhancedDatabases = [
+      { name: 'ACADEMIC_MANAGEMENT', description: 'University academic system', difficulty: 'Medium', tables: 25 },
+      { name: 'AUTOMOTIVE_SALES', description: 'Car dealership operations', difficulty: 'Hard', tables: 35 },
+      { name: 'HEALTHCARE_ANALYTICS', description: 'Hospital patient management', difficulty: 'Hard', tables: 42 },
+      { name: 'RETAIL_OPERATIONS', description: 'E-commerce retail system', difficulty: 'Medium', tables: 28 },
+      { name: 'FINANCE_DATA', description: 'Banking transaction system', difficulty: 'Hard', tables: 38 },
+      { name: 'SUPPLY_CHAIN', description: 'Manufacturing supply chain', difficulty: 'Medium', tables: 30 },
+      { name: 'CUSTOMER_ANALYTICS', description: 'Customer behavior analysis', difficulty: 'Easy', tables: 18 },
+      { name: 'INVENTORY_MGMT', description: 'Warehouse inventory tracking', difficulty: 'Medium', tables: 22 }
+    ];
+
+    setRealDatabases(enhancedDatabases);
+  }, []);
+  
 
 interface DatabaseSelectorProps {
   onSelect: (database: Database) => void;
