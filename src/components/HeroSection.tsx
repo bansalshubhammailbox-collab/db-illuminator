@@ -8,6 +8,8 @@ import { SavedRunsViewer } from "@/components/SavedRunsViewer";
 
 export function HeroSection({ onStartEvaluation }: { onStartEvaluation?: () => void }) {
   const [savedRunsOpen, setSavedRunsOpen] = useState(false);
+  
+  console.log('HeroSection rendered, savedRunsOpen:', savedRunsOpen);
   return (
     <section className="relative min-h-[80vh] flex items-center overflow-hidden bg-gradient-subtle">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
@@ -56,8 +58,8 @@ export function HeroSection({ onStartEvaluation }: { onStartEvaluation?: () => v
                 size="lg" 
                 className="text-lg px-8"
                 onClick={() => {
-                  console.log('View Saved Runs button clicked!');
-                  setSavedRunsOpen(true);
+                  console.log('View Saved Runs button clicked!', { savedRunsOpen });
+                  setSavedRunsOpen(!savedRunsOpen);
                 }}
               >
                 <History className="mr-2 h-5 w-5" />
@@ -99,7 +101,10 @@ export function HeroSection({ onStartEvaluation }: { onStartEvaluation?: () => v
         </div>
       </div>
       
-      <Dialog open={savedRunsOpen} onOpenChange={setSavedRunsOpen}>
+      <Dialog open={savedRunsOpen} onOpenChange={(open) => {
+        console.log('Dialog state changing to:', open);
+        setSavedRunsOpen(open);
+      }}>
         <DialogContent className="max-w-6xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Saved Evaluation Runs</DialogTitle>
