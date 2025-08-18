@@ -40,7 +40,7 @@ export function HeroSection({ onStartEvaluation }: { onStartEvaluation?: () => v
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 relative z-10">
               <Button 
                 size="lg" 
                 className="bg-gradient-primary text-lg px-8 hover:shadow-glow transition-all"
@@ -56,11 +56,15 @@ export function HeroSection({ onStartEvaluation }: { onStartEvaluation?: () => v
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="text-lg px-8"
-                onClick={() => {
+                className="text-lg px-8 relative z-10"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   console.log('View Saved Runs button clicked!', { savedRunsOpen });
+                  alert('Button clicked! Check console for dialog state.');
                   setSavedRunsOpen(!savedRunsOpen);
                 }}
+                style={{ pointerEvents: 'auto' }}
               >
                 <History className="mr-2 h-5 w-5" />
                 View Saved Runs
@@ -101,6 +105,7 @@ export function HeroSection({ onStartEvaluation }: { onStartEvaluation?: () => v
         </div>
       </div>
       
+      {/* Move dialog outside the main section to avoid z-index issues */}
       <Dialog open={savedRunsOpen} onOpenChange={(open) => {
         console.log('Dialog state changing to:', open);
         setSavedRunsOpen(open);
