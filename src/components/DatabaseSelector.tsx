@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useEvaluation, Database } from "@/contexts/EvaluationContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Database as DatabaseIcon, Check, ArrowRight, Search, ChevronLeft, ChevronRight } from "lucide-react";
-
 
 const spiderDatabases = [
   // Easy databases
@@ -64,42 +63,13 @@ interface DatabaseSelectorProps {
 }
 
 export function DatabaseSelector({ onSelect, selectedDatabase }: DatabaseSelectorProps) {
-  const [availableDatabases, setAvailableDatabases] = useState(spiderDatabases);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
   const itemsPerPage = 8;
-
-  useEffect(() => {
-    const fetchDatabases = async () => {
-      try {
-        const response = await fetch('/api/snowflake?action=databases');
-        const data = await response.json();
-        if (data.success) {
-          // Transform Snowflake data to match your UI format
-          const transformedDatabases = data.databases.map((db: any, index: number) => ({
-            id: db[1].toLowerCase().replace(/\s+/g, '_'),
-            name: db[1],
-            description: `Real Snowflake database: ${db[1]}`,
-            difficulty: index % 3 === 0 ? 'Easy' : index % 3 === 1 ? 'Medium' : 'Hard',
-            tables: Math.floor(Math.random() * 50) + 10
-          }));
-          setAvailableDatabases(transformedDatabases);
-        }
-      } catch (error) {
-        console.error('Error fetching databases:', error);
-        // Keep using spiderDatabases as fallback
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDatabases();
-  }, []);
   
   // Filter databases based on search and difficulty
-  const filteredDatabases = availableDatabases.filter(db => {
+  const filteredDatabases = spiderDatabases.filter(db => {
     const matchesSearch = db.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          db.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDifficulty = !selectedDifficulty || db.difficulty === selectedDifficulty;
@@ -134,7 +104,7 @@ export function DatabaseSelector({ onSelect, selectedDatabase }: DatabaseSelecto
     <div className="space-y-6">
       <div className="text-center">
         <h3 className="text-2xl font-bold mb-2">Select Spider Database</h3>
-        <p className="text-muted-foreground">Choose from {availableDatabases.length} Spider benchmark datasets hosted on Snowflake</p>
+        <p className="text-muted-foreground">Choose from {spiderDatabases.length} Spider benchmark datasets hosted on Snowflake</p>
       </div>
       
       {/* Search and Filter Controls */}
@@ -156,7 +126,7 @@ export function DatabaseSelector({ onSelect, selectedDatabase }: DatabaseSelecto
             size="sm"
             onClick={() => handleDifficultyFilter(null)}
           >
-            All ({availableDatabases.length})
+            All ({spiderDatabases.length})
           </Button>
           {["Easy", "Medium", "Hard"].map((difficulty) => (
             <Button
@@ -166,7 +136,7 @@ export function DatabaseSelector({ onSelect, selectedDatabase }: DatabaseSelecto
               onClick={() => handleDifficultyFilter(difficulty)}
               className={selectedDifficulty === difficulty ? getDifficultyColor(difficulty) : ""}
             >
-              {difficulty} ({availableDatabases.filter(db => db.difficulty === difficulty).length})
+              {difficulty} ({spiderDatabases.filter(db => db.difficulty === difficulty).length})
             </Button>
           ))}
         </div>

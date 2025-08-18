@@ -48,49 +48,37 @@ interface AnnotationOptions {
 }
 
 export async function generateDatabaseAnnotations(
-    database: string,
-    options: AnnotationOptions = {}
-  ): Promise<DatabaseAnnotations> {
-    try {
-      // First, get the real database schema
-      const schemaResponse = await fetch('/api/snowflake?action=schema', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ database }),
-      });
-
-      if (!schemaResponse.ok) {
-        throw new Error('Failed to fetch database schema');
-      }
-
-      const { schema } = await schemaResponse.json();
-
-      // Generate annotations using Gemini
-      const annotationResponse = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          schema,
-          customPrompt: options.customPrompt
-        }),
-      });
-
-      if (!annotationResponse.ok) {
-        throw new Error('Failed to generate annotations');
-      }
-
-      const { annotations } = await annotationResponse.json();
-      return annotations;
-
-    } catch (error) {
-      console.error('Error generating annotations:', error);
-      throw error;
+  database: Database,
+  customPrompt: string,
+  options?: AnnotationOptions
+): Promise<TableAnnotation[] | InteractiveAnnotationResult> {
+  try {
+    const rowLimit = options?.rowLimit || 5;
+    const processType = options?.processType || 'standard';
+    
+    console.log(`Generating annotations for ${database.name} with ${processType} process, ${rowLimit} row limit`);
+    
+    // Step 1: Get database schema (simulated with realistic data)
+    const schemaInfo = await getRealisticDatabaseSchema(database);
+    
+    // Step 2: Get sample data with custom row limit
+    const sampleData = await generateSampleDataFromTables(database, schemaInfo.tables, rowLimit);
+    
+    // Step 3: Determine processing approach
+    if (processType === 'interactive') {
+      // Interactive mode: Generate questions for user validation
+      return generateInteractiveQuestions(database, customPrompt, schemaInfo, sampleData, options?.customSampling);
     }
+    
+    // Standard mode: Generate annotations directly
+    const annotations = generateEnhancedAnnotations(database, schemaInfo, sampleData);
+    return annotations;
+    
+  } catch (error) {
+    console.error('Error generating annotations:', error);
+    throw new Error(`Failed to generate annotations: ${error.message}`);
   }
+}
 
 export async function processUserAnswersAndGenerateAnnotations(
   interactiveResult: InteractiveAnnotationResult,
