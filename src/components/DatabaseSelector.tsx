@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Database as DatabaseIcon, Check, ArrowRight, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const spiderDatabases = [
   
@@ -68,8 +69,53 @@ export function DatabaseSelector({ onSelect, selectedDatabase }: DatabaseSelecto
   const [loadingDatabases, setLoadingDatabases] = useState(false);
 
   useEffect(() => {
-    // Use all Spider databases - don't override with just 8 enhanced ones
-    setRealDatabases(spiderDatabases);
+    // TEMPORARY: Discover actual Snowflake datasets
+    async function discoverActualDatasets() {
+      try {
+        console.log('🔍 Discovering actual Snowflake datasets...');
+        
+        const { data, error } = await supabase.functions.invoke('discover-snowflake-datasets', {
+          body: {}
+        });
+        
+        if (error) {
+          console.error('❌ Error discovering datasets:', error);
+          setRealDatabases(spiderDatabases);
+          return;
+        }
+        
+        console.log('✅ SUCCESS! Here are the actual datasets in Snowflake:');
+        console.log('==========================================');
+        
+        if (data?.results) {
+          data.results.forEach((result, index) => {
+            console.log(`\nQuery ${index + 1}:`);
+            console.log('SQL:', result.query);
+            console.log('Success:', result.success);
+            
+            if (result.success && result.data) {
+              console.log(`Found ${result.data.length} results:`);
+              console.log(JSON.stringify(result.data.slice(0, 20), null, 2)); // Show first 20 rows
+              if (result.data.length > 20) {
+                console.log(`... and ${result.data.length - 20} more rows`);
+              }
+            } else if (result.error) {
+              console.log('❌ Error:', result.error);
+            }
+            console.log('---');
+          });
+        }
+        
+        // For now, still use Spider databases until we parse the real ones
+        setRealDatabases(spiderDatabases);
+        
+      } catch (error) {
+        console.error('❌ Function call failed:', error);
+        setRealDatabases(spiderDatabases);
+      }
+    }
+    
+    discoverActualDatasets();
   }, []);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
