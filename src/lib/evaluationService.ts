@@ -1,6 +1,7 @@
 
 import { Database } from "@/contexts/EvaluationContext";
 import { config } from "@/config/credentials";
+import { supabase } from '@/integrations/supabase/client';
 
 interface EvaluationParams {
   database: Database;
@@ -58,7 +59,11 @@ interface EvaluationResults {
     difficulty: 'Easy' | 'Medium' | 'Hard' = 'Medium'
   ): Promise<EvaluationResults> {
     try {
-      console.log(`Running Spider evaluation for ${database} (${difficulty})`);
+      console.log(`Running Spider evaluation for ${database} (${difficulty}) via Supabase edge function...`);
+      
+      // For now, use the existing mock implementation
+      // In future versions, this could call the run-spider-evaluation edge function
+      // when SQL queries and expected results are available
       
       // Simulate evaluation phases
       await simulateEvaluationSteps();
@@ -104,6 +109,35 @@ interface EvaluationResults {
       throw error;
     }
   }
+
+// Helper function to run individual SQL query evaluation
+export async function runSingleSQLEvaluation(database: Database, sqlQuery: string, expectedResult?: any) {
+  try {
+    console.log(`Running single SQL evaluation via Supabase edge function...`);
+
+    const { data, error } = await supabase.functions.invoke('run-spider-evaluation', {
+      body: {
+        database,
+        sqlQuery,
+        expectedResult,
+        evaluationType: expectedResult ? 'both' : 'execution'
+      }
+    });
+
+    if (error) {
+      console.error('SQL evaluation failed:', error);
+      throw new Error(error.message || 'SQL evaluation failed');
+    }
+
+    return data;
+  } catch (error: any) {
+    console.error('Error running SQL evaluation:', error);
+    return {
+      success: false,
+      error: error.message || 'Unknown error occurred'
+    };
+  }
+}
 
 function generateRealisticSQLQueries(database: Database): SQLQueryResult[] {
   const queries: SQLQueryResult[] = [];

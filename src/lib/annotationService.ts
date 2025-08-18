@@ -1,4 +1,5 @@
 import { Database } from "@/contexts/EvaluationContext";
+import { supabase } from '@/integrations/supabase/client';
 
 interface TableAnnotation {
   tableName: string;
@@ -52,37 +53,34 @@ interface AnnotationOptions {
     options: AnnotationOptions = {}
   ): Promise<TableAnnotation[] | InteractiveAnnotationResult> {
     try {
-      console.log(`Generating annotations for ${database.name} with options:`, options);
-      
-      // Check if interactive mode
-      if (options.processType === 'interactive') {
-        const schemaInfo = await getRealisticDatabaseSchema(database);
-        const sampleData = await generateSampleDataFromTables(database, schemaInfo.tables, options.rowLimit || 5);
-        
-        return generateInteractiveQuestions(
+      console.log(`Generating annotations for ${database.name} via Supabase edge function...`);
+
+      const { data, error } = await supabase.functions.invoke('generate-annotations', {
+        body: {
           database,
-          "Generate interactive questions",
-          schemaInfo,
-          sampleData,
-          options.customSampling
-        ) as any;
+          customPrompt: `Generate comprehensive database annotations for ${database.name}`,
+          options: {
+            rowLimit: options.rowLimit || 5,
+            processType: options.processType || 'standard',
+            customSampling: options.customSampling
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Annotation generation failed:', error);
+        throw new Error(error.message || 'Annotation generation failed');
       }
+
+      // If interactive mode, return the questions
+      if (options.processType === 'interactive') {
+        return data as InteractiveAnnotationResult;
+      }
+
+      // Standard mode - return annotations
+      return data as TableAnnotation[];
       
-      // Standard annotation generation
-      const schemaInfo = await getRealisticDatabaseSchema(database);
-      const annotations: TableAnnotation[] = schemaInfo.tables.map(table => ({
-        tableName: table.name,
-        description: `This table stores ${getTablePurpose(table.name)} for the ${database.name} system.`,
-        columns: table.columns.map((col: any) => ({
-          name: col.name,
-          type: col.type,
-          description: getColumnHypothesis(col.name, col.type, table.name),
-          businessContext: `Part of ${table.name} entity definition`
-        }))
-      }));
-      
-      return annotations;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Annotation generation error:', error);
       // Fallback to basic mock data
       return [{
@@ -129,21 +127,20 @@ export async function processUserAnswersAndGenerateAnnotations(
 
 export async function connectToSnowflake(database: Database) {
   try {
-    console.log(`Testing connection for ${database.name}`);
+    console.log(`Testing Snowflake connection for ${database.name} via Supabase edge function...`);
+
+    const { data, error } = await supabase.functions.invoke('test-snowflake-connection', {
+      body: { database }
+    });
+
+    if (error) {
+      console.error('Snowflake connection test failed:', error);
+      throw new Error(error.message || 'Connection test failed');
+    }
+
+    return data;
     
-    // Simulate connection test with realistic data
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    return {
-      status: 'connected',
-      database: database.name,
-      endpoint: 'RSRSBDK-YDB67606.snowflakecomputing.com',
-      warehouse: 'COMPUTE_WH',
-      schema: 'PUBLIC',
-      timestamp: new Date().toISOString()
-    };
-    
-  } catch (error) {
+  } catch (error: any) {
     console.error('Connection test error:', error);
     throw new Error('Failed to test connection. Please check your credentials.');
   }
