@@ -1,43 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useEvaluation, Database } from "@/contexts/EvaluationContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Database as DatabaseIcon, Check, ArrowRight, Search, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState, useEffect } from 'react';
 
 
 const spiderDatabases = [
- const [availableDatabases, setAvailableDatabases] = useState(spiderDatabases);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchDatabases = async () => {
-      try {
-        const response = await fetch('/api/snowflake?action=databases');
-        const data = await response.json();
-        if (data.success) {
-          // Transform Snowflake data to match your UI format
-          const transformedDatabases = data.databases.map((db: any, index: number) => ({
-            name: db[1], // Snowflake returns array with database name at index 1
-            description: `Real Snowflake database: ${db[1]}`,
-            difficulty: index % 3 === 0 ? 'Easy' : index % 3 === 1 ? 'Medium' : 'Hard',
-            tables: Math.floor(Math.random() * 50) + 10 // We'll get real count later
-          }));
-          setAvailableDatabases(transformedDatabases);
-        }
-      } catch (error) {
-        console.error('Error fetching databases:', error);
-        // Keep using spiderDatabases as fallback
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDatabases();
-  }, []);
-
   // Easy databases
   { id: "academic", name: "Academic", description: "University database with students, courses, and departments", tables: 8, difficulty: "Easy" },
   { id: "concert_singer", name: "Concert Singer", description: "Concert and singer management with venues and performances", tables: 6, difficulty: "Easy" },
@@ -94,10 +64,39 @@ interface DatabaseSelectorProps {
 }
 
 export function DatabaseSelector({ onSelect, selectedDatabase }: DatabaseSelectorProps) {
+  const [availableDatabases, setAvailableDatabases] = useState(spiderDatabases);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
   const itemsPerPage = 8;
+
+  useEffect(() => {
+    const fetchDatabases = async () => {
+      try {
+        const response = await fetch('/api/snowflake?action=databases');
+        const data = await response.json();
+        if (data.success) {
+          // Transform Snowflake data to match your UI format
+          const transformedDatabases = data.databases.map((db: any, index: number) => ({
+            id: db[1].toLowerCase().replace(/\s+/g, '_'),
+            name: db[1],
+            description: `Real Snowflake database: ${db[1]}`,
+            difficulty: index % 3 === 0 ? 'Easy' : index % 3 === 1 ? 'Medium' : 'Hard',
+            tables: Math.floor(Math.random() * 50) + 10
+          }));
+          setAvailableDatabases(transformedDatabases);
+        }
+      } catch (error) {
+        console.error('Error fetching databases:', error);
+        // Keep using spiderDatabases as fallback
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDatabases();
+  }, []);
   
   // Filter databases based on search and difficulty
   const filteredDatabases = availableDatabases.filter(db => {
