@@ -226,7 +226,7 @@ async function generateInteractiveQuestions(
 
 function generateRealisticSchema(database: Database) {
   const schemas = {
-    'car-dealership': [
+    'car_1': [ // Car Dealership - ALL 7 TABLES
       {
         name: 'vehicles',
         columns: [
@@ -235,7 +235,10 @@ function generateRealisticSchema(database: Database) {
           { name: 'model', type: 'VARCHAR(50)', nullable: false },
           { name: 'year', type: 'NUMBER(4)', nullable: false },
           { name: 'price', type: 'NUMBER(10,2)', nullable: false },
-          { name: 'status', type: 'VARCHAR(20)', nullable: false }
+          { name: 'mileage', type: 'NUMBER(8)', nullable: true },
+          { name: 'color', type: 'VARCHAR(30)', nullable: true },
+          { name: 'status', type: 'VARCHAR(20)', nullable: false },
+          { name: 'dealer_id', type: 'NUMBER(10)', nullable: false }
         ]
       },
       {
@@ -245,7 +248,65 @@ function generateRealisticSchema(database: Database) {
           { name: 'first_name', type: 'VARCHAR(50)', nullable: false },
           { name: 'last_name', type: 'VARCHAR(50)', nullable: false },
           { name: 'email', type: 'VARCHAR(100)', nullable: true },
-          { name: 'phone', type: 'VARCHAR(20)', nullable: true }
+          { name: 'phone', type: 'VARCHAR(20)', nullable: true },
+          { name: 'address', type: 'VARCHAR(200)', nullable: true },
+          { name: 'credit_score', type: 'NUMBER(3)', nullable: true }
+        ]
+      },
+      {
+        name: 'sales',
+        columns: [
+          { name: 'sale_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'vehicle_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'customer_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'sale_date', type: 'DATE', nullable: false },
+          { name: 'sale_price', type: 'NUMBER(10,2)', nullable: false },
+          { name: 'financing_type', type: 'VARCHAR(20)', nullable: true },
+          { name: 'salesperson_id', type: 'NUMBER(10)', nullable: false }
+        ]
+      },
+      {
+        name: 'dealers',
+        columns: [
+          { name: 'dealer_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'dealer_name', type: 'VARCHAR(100)', nullable: false },
+          { name: 'location', type: 'VARCHAR(100)', nullable: false },
+          { name: 'phone', type: 'VARCHAR(20)', nullable: true },
+          { name: 'manager_id', type: 'NUMBER(10)', nullable: true }
+        ]
+      },
+      {
+        name: 'salespeople',
+        columns: [
+          { name: 'salesperson_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'first_name', type: 'VARCHAR(50)', nullable: false },
+          { name: 'last_name', type: 'VARCHAR(50)', nullable: false },
+          { name: 'dealer_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'hire_date', type: 'DATE', nullable: false },
+          { name: 'commission_rate', type: 'NUMBER(3,2)', nullable: false }
+        ]
+      },
+      {
+        name: 'service_records',
+        columns: [
+          { name: 'service_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'vehicle_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'service_date', type: 'DATE', nullable: false },
+          { name: 'service_type', type: 'VARCHAR(50)', nullable: false },
+          { name: 'cost', type: 'NUMBER(8,2)', nullable: false },
+          { name: 'technician', type: 'VARCHAR(50)', nullable: true }
+        ]
+      },
+      {
+        name: 'financing',
+        columns: [
+          { name: 'financing_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'sale_id', type: 'NUMBER(10)', nullable: false },
+          { name: 'loan_amount', type: 'NUMBER(10,2)', nullable: false },
+          { name: 'interest_rate', type: 'NUMBER(4,2)', nullable: false },
+          { name: 'term_months', type: 'NUMBER(3)', nullable: false },
+          { name: 'monthly_payment', type: 'NUMBER(8,2)', nullable: false },
+          { name: 'lender', type: 'VARCHAR(50)', nullable: false }
         ]
       }
     ],
