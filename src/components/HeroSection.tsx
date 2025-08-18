@@ -42,31 +42,27 @@ export function HeroSection({ onStartEvaluation }: { onStartEvaluation?: () => v
               <Button 
                 size="lg" 
                 className="bg-gradient-primary text-lg px-8 hover:shadow-glow transition-all"
-                onClick={onStartEvaluation}
+                onClick={() => {
+                  console.log('Start Evaluation button clicked!');
+                  onStartEvaluation?.();
+                }}
               >
                 Start Evaluation
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               
-              <Dialog open={savedRunsOpen} onOpenChange={setSavedRunsOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="lg" className="text-lg px-8">
-                    <History className="mr-2 h-5 w-5" />
-                    View Saved Runs
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-6xl max-h-[80vh]">
-                  <DialogHeader>
-                    <DialogTitle>Saved Evaluation Runs</DialogTitle>
-                    <DialogDescription>
-                      View and analyze your previous Spider benchmark evaluation results
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="overflow-y-auto">
-                    <SavedRunsViewer />
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="text-lg px-8"
+                onClick={() => {
+                  console.log('View Saved Runs button clicked!');
+                  setSavedRunsOpen(true);
+                }}
+              >
+                <History className="mr-2 h-5 w-5" />
+                View Saved Runs
+              </Button>
             </div>
 
             <div className="flex items-center gap-6 pt-4">
@@ -102,6 +98,20 @@ export function HeroSection({ onStartEvaluation }: { onStartEvaluation?: () => v
           </div>
         </div>
       </div>
+      
+      <Dialog open={savedRunsOpen} onOpenChange={setSavedRunsOpen}>
+        <DialogContent className="max-w-6xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Saved Evaluation Runs</DialogTitle>
+            <DialogDescription>
+              View and analyze your previous Spider benchmark evaluation results
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto">
+            <SavedRunsViewer />
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
