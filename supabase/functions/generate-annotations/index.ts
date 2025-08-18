@@ -534,7 +534,8 @@ async function authenticateSnowflake(config: any) {
 async function fetchSnowflakeSchema(sessionToken: string, config: any, databaseName: string) {
   const queryUrl = `https://${config.account}.snowflakecomputing.com/queries/v1/query-request`;
   
-  // Query to get table and column information for the specific database
+  // Query to get table and column information for all tables in SPIDER2 database
+  // Note: Using SPIDER2.PUBLIC schema which contains all the Spider benchmark databases
   const sql = `
     SELECT 
       t.table_name,
@@ -543,10 +544,11 @@ async function fetchSnowflakeSchema(sessionToken: string, config: any, databaseN
       c.is_nullable,
       c.column_default,
       c.ordinal_position
-    FROM information_schema.tables t
-    JOIN information_schema.columns c ON t.table_name = c.table_name
-    WHERE t.table_schema = '${config.schema}' 
-      AND t.table_catalog = '${config.database}'
+    FROM SPIDER2.information_schema.tables t
+    JOIN SPIDER2.information_schema.columns c ON t.table_name = c.table_name
+    WHERE t.table_schema = 'PUBLIC' 
+      AND t.table_catalog = 'SPIDER2'
+      AND UPPER(t.table_name) LIKE '%${databaseName.toUpperCase()}%'
     ORDER BY t.table_name, c.ordinal_position
   `;
 
@@ -580,7 +582,7 @@ async function fetchSnowflakeSampleData(sessionToken: string, config: any, table
   for (const table of tables) {
     const queryUrl = `https://${config.account}.snowflakecomputing.com/queries/v1/query-request`;
     
-    const sql = `SELECT * FROM ${config.schema}.${table.name} LIMIT ${rowLimit}`;
+    const sql = `SELECT * FROM SPIDER2.PUBLIC.${table.name} LIMIT ${rowLimit}`;
 
     try {
       const response = await fetch(queryUrl, {

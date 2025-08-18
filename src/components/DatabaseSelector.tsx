@@ -68,19 +68,8 @@ export function DatabaseSelector({ onSelect, selectedDatabase }: DatabaseSelecto
   const [loadingDatabases, setLoadingDatabases] = useState(false);
 
   useEffect(() => {
-    // Enhanced database list with real Spider2 names
-    const enhancedDatabases = [
-      { id: 'academic_management', name: 'ACADEMIC_MANAGEMENT', description: 'University academic system', difficulty: 'Medium', tables: 25 },
-      { id: 'automotive_sales', name: 'AUTOMOTIVE_SALES', description: 'Car dealership operations', difficulty: 'Hard', tables: 35 },
-      { id: 'healthcare_analytics', name: 'HEALTHCARE_ANALYTICS', description: 'Hospital patient management', difficulty: 'Hard', tables: 42 },
-      { id: 'retail_operations', name: 'RETAIL_OPERATIONS', description: 'E-commerce retail system', difficulty: 'Medium', tables: 28 },
-      { id: 'finance_data', name: 'FINANCE_DATA', description: 'Banking transaction system', difficulty: 'Hard', tables: 38 },
-      { id: 'supply_chain', name: 'SUPPLY_CHAIN', description: 'Manufacturing supply chain', difficulty: 'Medium', tables: 30 },
-      { id: 'customer_analytics', name: 'CUSTOMER_ANALYTICS', description: 'Customer behavior analysis', difficulty: 'Easy', tables: 18 },
-      { id: 'inventory_mgmt', name: 'INVENTORY_MGMT', description: 'Warehouse inventory tracking', difficulty: 'Medium', tables: 22 }
-    ];
-
-    setRealDatabases(enhancedDatabases);
+    // Use all Spider databases - don't override with just 8 enhanced ones
+    setRealDatabases(spiderDatabases);
   }, []);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
