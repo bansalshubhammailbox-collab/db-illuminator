@@ -58,7 +58,13 @@ const spiderDatabases = [
   { id: "department_management", name: "Department Management", description: "Corporate department and employee hierarchy", tables: 11, difficulty: "Hard" }
 ];
 
-const [realDatabases, setRealDatabases] = useState(spiderDatabases);
+interface DatabaseSelectorProps {
+  onSelect: (database: Database) => void;
+  selectedDatabase?: Database | null;
+}
+
+export function DatabaseSelector({ onSelect, selectedDatabase }: DatabaseSelectorProps) {
+  const [realDatabases, setRealDatabases] = useState(spiderDatabases);
   const [loadingDatabases, setLoadingDatabases] = useState(false);
 
   useEffect(() => {
@@ -76,14 +82,6 @@ const [realDatabases, setRealDatabases] = useState(spiderDatabases);
 
     setRealDatabases(enhancedDatabases);
   }, []);
-  
-
-interface DatabaseSelectorProps {
-  onSelect: (database: Database) => void;
-  selectedDatabase?: Database | null;
-}
-
-export function DatabaseSelector({ onSelect, selectedDatabase }: DatabaseSelectorProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
