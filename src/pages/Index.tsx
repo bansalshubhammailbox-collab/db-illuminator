@@ -37,7 +37,7 @@ const IndexContent = () => {
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <HeroSection />
+      <HeroSection onStartEvaluation={() => setShowDatabaseSelector(true)} />
       
       {/* Credential Status Section */}
       <section className="py-8 bg-background/30">
