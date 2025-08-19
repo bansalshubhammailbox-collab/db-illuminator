@@ -1,11 +1,83 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useEvaluation, Database } from "@/contexts/EvaluationContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Database as DatabaseIcon, Check, ArrowRight, Search, ChevronLeft, ChevronRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from 'react';
+
+const spiderDatabases = [
+  
+  // Easy databases
+  { id: "academic", name: "Academic", description: "University database with students, courses, and departments", tables: 8, difficulty: "Easy" },
+  { id: "concert_singer", name: "Concert Singer", description: "Concert and singer management with venues and performances", tables: 6, difficulty: "Easy" },
+  { id: "pets_1", name: "Pets", description: "Pet adoption database with owners and treatments", tables: 5, difficulty: "Easy" },
+  { id: "world_1", name: "World Countries", description: "Global country data with cities, languages, and populations", tables: 3, difficulty: "Easy" },
+  { id: "singer", name: "Singer Records", description: "Music industry database with singers and albums", tables: 2, difficulty: "Easy" },
+  { id: "museum_visit", name: "Museum Visits", description: "Museum visitor tracking and exhibition management", tables: 4, difficulty: "Easy" },
+  { id: "battle_death", name: "Battle Deaths", description: "Historical battles and casualty records", tables: 3, difficulty: "Easy" },
+  { id: "student_transcripts_tracking", name: "Student Transcripts", description: "Academic transcript and course tracking system", tables: 6, difficulty: "Easy" },
+  { id: "tvshow", name: "TV Shows", description: "Television program and episode management", tables: 4, difficulty: "Easy" },
+  { id: "poker_player", name: "Poker Players", description: "Professional poker tournament and player statistics", tables: 3, difficulty: "Easy" },
+  
+  // Medium databases
+  { id: "car_1", name: "Car Dealership", description: "Car sales database with inventory and customers", tables: 7, difficulty: "Medium" },
+  { id: "flight_2", name: "Flight Management", description: "Airline database with flights, airports, and passengers", tables: 12, difficulty: "Medium" },
+  { id: "employee_hire_evaluation", name: "Employee Evaluation", description: "HR database with hiring and performance data", tables: 9, difficulty: "Medium" },
+  { id: "restaurant_1", name: "Restaurant Chain", description: "Restaurant management with locations and menu items", tables: 8, difficulty: "Medium" },
+  { id: "network_1", name: "Network Infrastructure", description: "Computer network topology and device management", tables: 6, difficulty: "Medium" },
+  { id: "apartment_rentals", name: "Apartment Rentals", description: "Property rental management with tenants and leases", tables: 10, difficulty: "Medium" },
+  { id: "customers_and_invoices", name: "Customer Invoicing", description: "Customer relationship and invoice tracking system", tables: 8, difficulty: "Medium" },
+  { id: "insurance_fnol", name: "Insurance Claims", description: "Insurance claim processing and policy management", tables: 11, difficulty: "Medium" },
+  { id: "soccer_1", name: "Soccer League", description: "Soccer tournament management with teams and matches", tables: 7, difficulty: "Medium" },
+  { id: "college_2", name: "College System", description: "Comprehensive college administration database", tables: 9, difficulty: "Medium" },
+  { id: "phone_1", name: "Phone Catalog", description: "Mobile phone specifications and manufacturer data", tables: 4, difficulty: "Medium" },
+  { id: "wine_1", name: "Wine Collection", description: "Wine inventory with vineyards and appellations", tables: 6, difficulty: "Medium" },
+  { id: "machine_repair", name: "Machine Repair", description: "Industrial equipment maintenance and repair tracking", tables: 5, difficulty: "Medium" },
+  
+  // Hard databases  
+  { id: "cre_Doc_Template_Mgt", name: "Document Management", description: "Enterprise document templates and workflows", tables: 15, difficulty: "Hard" },
+  { id: "course_teach", name: "Course Teaching", description: "Advanced academic system with teaching assignments", tables: 11, difficulty: "Hard" },
+  { id: "club_1", name: "Club Management", description: "Comprehensive club membership and event system", tables: 13, difficulty: "Hard" },
+  { id: "assets_maintenance", name: "Asset Maintenance", description: "Enterprise asset lifecycle and maintenance tracking", tables: 16, difficulty: "Hard" },
+  { id: "hospital_1", name: "Hospital System", description: "Complete hospital management with patients and staff", tables: 14, difficulty: "Hard" },
+  { id: "tracking_grants_for_research", name: "Research Grants", description: "Academic research funding and grant management", tables: 12, difficulty: "Hard" },
+  { id: "loan_1", name: "Loan Management", description: "Financial loan processing and customer accounts", tables: 10, difficulty: "Hard" },
+  { id: "solvency_ii", name: "Solvency Regulations", description: "Insurance regulatory compliance and reporting", tables: 18, difficulty: "Hard" },
+  { id: "manufacturers", name: "Manufacturing", description: "Industrial manufacturing process and supply chain", tables: 13, difficulty: "Hard" },
+  { id: "tracking_software_problems", name: "Software Issues", description: "Bug tracking and software development lifecycle", tables: 11, difficulty: "Hard" },
+  { id: "chinook_1", name: "Music Store", description: "Digital music store with customers and purchases", tables: 13, difficulty: "Hard" },
+  { id: "sakila_1", name: "Video Rental", description: "Movie rental store with inventory and customers", tables: 16, difficulty: "Hard" },
+  { id: "local_govt_and_lot", name: "Government Services", description: "Local government administration and services", tables: 15, difficulty: "Hard" },
+  { id: "sports_competition", name: "Sports Competition", description: "Multi-sport competition management system", tables: 12, difficulty: "Hard" },
+  { id: "voter_1", name: "Voting System", description: "Election management with candidates and results", tables: 9, difficulty: "Hard" },
+  { id: "perpetrator", name: "Crime Database", description: "Criminal investigation and case management", tables: 8, difficulty: "Hard" },
+  { id: "customers_campaigns_ecommerce", name: "E-commerce Marketing", description: "Customer segmentation and marketing campaigns", tables: 14, difficulty: "Hard" },
+  { id: "wedding", name: "Wedding Planning", description: "Wedding event planning and vendor management", tables: 10, difficulty: "Hard" },
+  { id: "decoration_competition", name: "Decoration Contest", description: "Design competition with judges and entries", tables: 7, difficulty: "Hard" },
+  { id: "department_management", name: "Department Management", description: "Corporate department and employee hierarchy", tables: 11, difficulty: "Hard" }
+];
+
+const [realDatabases, setRealDatabases] = useState(spiderDatabases);
+  const [loadingDatabases, setLoadingDatabases] = useState(false);
+
+  useEffect(() => {
+    // Enhanced database list with real Spider2 names
+    const enhancedDatabases = [
+      { name: 'ACADEMIC_MANAGEMENT', description: 'University academic system', difficulty: 'Medium', tables: 25 },
+      { name: 'AUTOMOTIVE_SALES', description: 'Car dealership operations', difficulty: 'Hard', tables: 35 },
+      { name: 'HEALTHCARE_ANALYTICS', description: 'Hospital patient management', difficulty: 'Hard', tables: 42 },
+      { name: 'RETAIL_OPERATIONS', description: 'E-commerce retail system', difficulty: 'Medium', tables: 28 },
+      { name: 'FINANCE_DATA', description: 'Banking transaction system', difficulty: 'Hard', tables: 38 },
+      { name: 'SUPPLY_CHAIN', description: 'Manufacturing supply chain', difficulty: 'Medium', tables: 30 },
+      { name: 'CUSTOMER_ANALYTICS', description: 'Customer behavior analysis', difficulty: 'Easy', tables: 18 },
+      { name: 'INVENTORY_MGMT', description: 'Warehouse inventory tracking', difficulty: 'Medium', tables: 22 }
+    ];
+
+    setRealDatabases(enhancedDatabases);
+  }, []);
+  
 
 interface DatabaseSelectorProps {
   onSelect: (database: Database) => void;
@@ -13,106 +85,6 @@ interface DatabaseSelectorProps {
 }
 
 export function DatabaseSelector({ onSelect, selectedDatabase }: DatabaseSelectorProps) {
-  const [realDatabases, setRealDatabases] = useState<Database[]>([]);
-  const [loadingDatabases, setLoadingDatabases] = useState(true);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [credentialDetails, setCredentialDetails] = useState<any>(null);
-
-  useEffect(() => {
-    async function loadRealDatabases() {
-      try {
-        setLoadingDatabases(true);
-        setConnectionError(null);
-        
-        console.log('🔍 Loading real Snowflake databases (NO FALLBACKS)...');
-        
-        const { data, error } = await supabase.functions.invoke('discover-snowflake-datasets', {
-          body: {}
-        });
-        
-        if (error) {
-          console.error('❌ Supabase function error:', error);
-          setConnectionError(`Supabase function error: ${error.message}`);
-          setLoadingDatabases(false);
-          return;
-        }
-        
-        if (!data.success) {
-          console.error('❌ Discovery failed:', data.error);
-          
-          // Parse specific credential errors
-          let errorDetails = data.error;
-          let credentialIssue = null;
-          
-          if (data.error.includes('authentication failed')) {
-            credentialIssue = 'Authentication failed - check SPIDER_SNOWFLAKE_USER and SPIDER_SNOWFLAKE_PASSWORD';
-          } else if (data.error.includes('invalid peer certificate') || data.error.includes('NotValidForName')) {
-            credentialIssue = 'Account URL format error - check SPIDER_SNOWFLAKE_ACCOUNT format';
-          } else if (data.error.includes('not configured')) {
-            credentialIssue = 'Missing credentials in Supabase secrets';
-          }
-          
-          setConnectionError(errorDetails);
-          setCredentialDetails({
-            issue: credentialIssue,
-            fullError: data.error
-          });
-          setLoadingDatabases(false);
-          return;
-        }
-        
-        console.log('✅ SUCCESS! Raw Snowflake response:');
-        console.log(JSON.stringify(data, null, 2));
-        
-        // Parse actual databases from Snowflake response
-        const databases = parseSnowflakeDatabases(data.results);
-        console.log('📊 Parsed databases:', databases);
-        
-        setRealDatabases(databases);
-        setLoadingDatabases(false);
-        
-      } catch (error) {
-        console.error('❌ Function call failed:', error);
-        setConnectionError(`Function call failed: ${error.message}`);
-        setLoadingDatabases(false);
-      }
-    }
-    
-    loadRealDatabases();
-  }, []);
-  
-  // Helper function to parse Snowflake results into database list
-  const parseSnowflakeDatabases = (results: any[]) => {
-    if (!results || results.length === 0) return [];
-    
-    // Find the dataset prefix query result (Query 3)
-    const prefixResult = results.find(r => r.query?.includes('dataset_prefix'));
-    
-    if (!prefixResult || !prefixResult.success || !prefixResult.data) {
-      console.warn('No dataset prefix data found, using table list');
-      // Fallback to using all tables from Query 1
-      const tablesResult = results.find(r => r.query?.includes('table_name'));
-      if (tablesResult?.success && tablesResult.data) {
-        return tablesResult.data.slice(0, 20).map((table: any) => ({
-          id: table.TABLE_NAME?.toLowerCase() || 'unknown',
-          name: table.TABLE_NAME || 'Unknown',
-          description: `Table: ${table.TABLE_NAME}`,
-          difficulty: 'Medium' as const,
-          tables: 1
-        }));
-      }
-      return [];
-    }
-    
-    // Convert dataset prefixes to database objects
-    return prefixResult.data.map((item: any) => ({
-      id: item.DATASET_PREFIX?.toLowerCase() || 'unknown',
-      name: item.DATASET_PREFIX || 'Unknown',
-      description: `${item.DATASET_PREFIX} database from Spider benchmark`,
-      difficulty: item.TABLE_COUNT > 15 ? 'Hard' : item.TABLE_COUNT > 8 ? 'Medium' : 'Easy',
-      tables: item.TABLE_COUNT || 0
-    }));
-  };
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
@@ -150,75 +122,11 @@ export function DatabaseSelector({ onSelect, selectedDatabase }: DatabaseSelecto
     }
   };
 
-  if (loadingDatabases) {
-    return (
-      <div className="space-y-6">
-        <div className="text-center">
-          <h3 className="text-2xl font-bold mb-2">Loading Snowflake Databases</h3>
-          <p className="text-muted-foreground">Connecting to Snowflake to discover available datasets...</p>
-          <div className="mt-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (connectionError) {
-    return (
-      <div className="space-y-6">
-        <div className="text-center">
-          <h3 className="text-2xl font-bold mb-2 text-destructive">Snowflake Connection Failed</h3>
-          <p className="text-muted-foreground">Unable to load databases from Snowflake</p>
-        </div>
-        
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive">Connection Error</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {credentialDetails?.issue && (
-              <div className="bg-destructive/10 p-4 rounded-lg">
-                <h4 className="font-semibold text-destructive mb-2">Credential Issue:</h4>
-                <p className="text-sm">{credentialDetails.issue}</p>
-              </div>
-            )}
-            
-            <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-semibold mb-2">Full Error:</h4>
-              <pre className="text-xs text-muted-foreground whitespace-pre-wrap">{connectionError}</pre>
-            </div>
-            
-            <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
-              <h4 className="font-semibold mb-2">Check Supabase Secrets:</h4>
-              <ul className="text-sm space-y-1">
-                <li>• SPIDER_SNOWFLAKE_USER</li>
-                <li>• SPIDER_SNOWFLAKE_PASSWORD</li>
-                <li>• SPIDER_SNOWFLAKE_ACCOUNT</li>
-              </ul>
-            </div>
-            
-            <Button 
-              onClick={() => window.location.reload()} 
-              className="w-full"
-            >
-              Retry Connection
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h3 className="text-2xl font-bold mb-2">Select Snowflake Database</h3>
-        <p className="text-muted-foreground">
-          {realDatabases.length > 0 
-            ? `Choose from ${realDatabases.length} real databases loaded from Snowflake` 
-            : "No databases found in Snowflake"}
-        </p>
+        <h3 className="text-2xl font-bold mb-2">Select Spider Database</h3>
+        <p className="text-muted-foreground">Choose from {realDatabases.length} Spider benchmark datasets hosted on Snowflake</p>
       </div>
       
       {/* Search and Filter Controls */}

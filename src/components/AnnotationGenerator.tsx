@@ -63,6 +63,7 @@ export function AnnotationGenerator() {
 
       const result = await generateDatabaseAnnotations(
         state.selectedDatabase,
+        state.customPrompt,
         {
           processType,
           rowLimit,
@@ -74,16 +75,10 @@ export function AnnotationGenerator() {
       setProgress(100);
       
       // Handle different result types
-      if (Array.isArray(result)) {
-        // Standard annotation result
-        setGeneratedAnnotations(result);
-      } else if (result && typeof result === 'object' && 'type' in result) {
-        // Interactive annotation result
-        setInteractiveResult(result as InteractiveAnnotationResult);
+      if ('type' in result && result.type === 'interactive') {
+        setInteractiveResult(result);
       } else {
-        // Fallback - shouldn't happen but handle gracefully
-        console.warn('Unexpected result type:', result);
-        setGeneratedAnnotations([]);
+        setGeneratedAnnotations(result as TableAnnotation[]);
       }
       
     } catch (err) {
