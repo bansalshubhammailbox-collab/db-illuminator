@@ -87,11 +87,11 @@ export function SpiderEvaluationRunner() {
       }
 
       // Run the actual evaluation
-      const evaluationResults = await runSpiderEvaluation({
-        database: state.selectedDatabase,
-        annotations: state.annotations,
-        customPrompt: state.customPrompt
-      });
+      const evaluationResults = await runSpiderEvaluation(
+        state.selectedDatabase.name,
+        state.annotations,
+        state.selectedDatabase.difficulty as 'Easy' | 'Medium' | 'Hard'
+      );
 
       setProgress(100);
       setResults(evaluationResults);

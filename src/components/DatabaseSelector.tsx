@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useEvaluation, Database } from "@/contexts/EvaluationContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Database as DatabaseIcon, Check, ArrowRight, Search, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState, useEffect } from 'react';
 
 const spiderDatabases = [
   
@@ -59,32 +58,30 @@ const spiderDatabases = [
   { id: "department_management", name: "Department Management", description: "Corporate department and employee hierarchy", tables: 11, difficulty: "Hard" }
 ];
 
-const [realDatabases, setRealDatabases] = useState(spiderDatabases);
-  const [loadingDatabases, setLoadingDatabases] = useState(false);
-
-  useEffect(() => {
-    // Enhanced database list with real Spider2 names
-    const enhancedDatabases = [
-      { name: 'ACADEMIC_MANAGEMENT', description: 'University academic system', difficulty: 'Medium', tables: 25 },
-      { name: 'AUTOMOTIVE_SALES', description: 'Car dealership operations', difficulty: 'Hard', tables: 35 },
-      { name: 'HEALTHCARE_ANALYTICS', description: 'Hospital patient management', difficulty: 'Hard', tables: 42 },
-      { name: 'RETAIL_OPERATIONS', description: 'E-commerce retail system', difficulty: 'Medium', tables: 28 },
-      { name: 'FINANCE_DATA', description: 'Banking transaction system', difficulty: 'Hard', tables: 38 },
-      { name: 'SUPPLY_CHAIN', description: 'Manufacturing supply chain', difficulty: 'Medium', tables: 30 },
-      { name: 'CUSTOMER_ANALYTICS', description: 'Customer behavior analysis', difficulty: 'Easy', tables: 18 },
-      { name: 'INVENTORY_MGMT', description: 'Warehouse inventory tracking', difficulty: 'Medium', tables: 22 }
-    ];
-
-    setRealDatabases(enhancedDatabases);
-  }, []);
-  
-
 interface DatabaseSelectorProps {
   onSelect: (database: Database) => void;
   selectedDatabase?: Database | null;
 }
 
 export function DatabaseSelector({ onSelect, selectedDatabase }: DatabaseSelectorProps) {
+  const [realDatabases, setRealDatabases] = useState(spiderDatabases);
+  const [loadingDatabases, setLoadingDatabases] = useState(false);
+
+  useEffect(() => {
+    // Enhanced database list with real Spider2 names
+    const enhancedDatabases = [
+      { id: 'academic_management', name: 'ACADEMIC_MANAGEMENT', description: 'University academic system', difficulty: 'Medium', tables: 25 },
+      { id: 'automotive_sales', name: 'AUTOMOTIVE_SALES', description: 'Car dealership operations', difficulty: 'Hard', tables: 35 },
+      { id: 'healthcare_analytics', name: 'HEALTHCARE_ANALYTICS', description: 'Hospital patient management', difficulty: 'Hard', tables: 42 },
+      { id: 'retail_operations', name: 'RETAIL_OPERATIONS', description: 'E-commerce retail system', difficulty: 'Medium', tables: 28 },
+      { id: 'finance_data', name: 'FINANCE_DATA', description: 'Banking transaction system', difficulty: 'Hard', tables: 38 },
+      { id: 'supply_chain', name: 'SUPPLY_CHAIN', description: 'Manufacturing supply chain', difficulty: 'Medium', tables: 30 },
+      { id: 'customer_analytics', name: 'CUSTOMER_ANALYTICS', description: 'Customer behavior analysis', difficulty: 'Easy', tables: 18 },
+      { id: 'inventory_mgmt', name: 'INVENTORY_MGMT', description: 'Warehouse inventory tracking', difficulty: 'Medium', tables: 22 }
+    ];
+
+    setRealDatabases(enhancedDatabases);
+  }, []);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
